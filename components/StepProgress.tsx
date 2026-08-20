@@ -44,13 +44,14 @@ export function StepProgress({
               aria-hidden
               className={[
                 "flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-medium",
+                "transition-all duration-200",
                 active
-                  ? "bg-neutral-900 text-white ring-4 ring-neutral-900/10"
+                  ? "bg-primary text-on-primary ring-4 ring-primary/15"
                   : done
-                    ? "bg-neutral-900 text-white"
+                    ? "bg-primary text-on-primary"
                     : s.n <= reachable
-                      ? "border border-neutral-400 bg-white text-neutral-600"
-                      : "border border-neutral-200 bg-white text-neutral-300",
+                      ? "border border-ink-mute bg-surface text-ink-soft"
+                      : "border border-line bg-surface text-ink-mute/50",
               ].join(" ")}
             >
               {done ? "✓" : s.n}
@@ -62,10 +63,10 @@ export function StepProgress({
               className={[
                 "mt-1.5 block text-center text-[10px] leading-tight",
                 active
-                  ? "font-medium text-neutral-900"
+                  ? "font-semibold text-ink"
                   : s.n <= reachable
-                    ? "text-neutral-600"
-                    : "text-neutral-300",
+                    ? "text-ink-soft"
+                    : "text-ink-mute/50",
               ].join(" ")}
             >
               {s.title}
@@ -78,8 +79,8 @@ export function StepProgress({
                 <button
                   type="button"
                   onClick={() => onJump(s.n)}
-                  className="flex w-full flex-col items-center rounded focus:outline-none
-                             focus-visible:ring-2 focus-visible:ring-neutral-900"
+                  className="flex w-full cursor-pointer flex-col items-center rounded-lg py-1
+                             transition-colors duration-200 hover:bg-muted"
                 >
                   {dot}
                   {label}
@@ -98,9 +99,9 @@ export function StepProgress({
         })}
       </ol>
 
-      <div className="relative mt-2 h-1 rounded-full bg-neutral-200">
+      <div className="relative mt-3 h-1.5 rounded-full bg-line">
         <div
-          className="absolute inset-y-0 left-0 rounded-full bg-neutral-900 transition-all duration-300"
+          className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all duration-300"
           style={{ width: `${pct}%` }}
           role="progressbar"
           aria-valuenow={current}
@@ -109,7 +110,7 @@ export function StepProgress({
           aria-label={`Step ${current} of ${steps.length}`}
         />
       </div>
-      <p className="mt-1.5 text-[11px] text-neutral-500">
+      <p className="mt-2 text-[11px] font-medium text-ink-mute">
         Step {current} of {steps.length}
       </p>
     </nav>

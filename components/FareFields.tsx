@@ -1,5 +1,6 @@
 "use client";
 
+import { fieldClass } from "@/components/ui";
 import type { Fare } from "@/lib/itinerary";
 
 /**
@@ -19,12 +20,12 @@ export function FareFields({
   onChange: (p: Partial<Fare>) => void;
 }) {
   return (
-    <details className="rounded-lg border border-neutral-200 bg-white p-4">
+    <details className="rounded-xl border border-line bg-surface p-5 shadow-[var(--shadow-card)]">
       <summary className="cursor-pointer text-sm font-medium">
         Fare information — optional
       </summary>
 
-      <p className="mt-2 text-xs text-neutral-500">
+      <p className="mt-2 text-xs text-ink-mute">
         Left blank, the fare block does not appear on the document at all. Nothing here
         is generated — the document prints exactly what you type.
       </p>
@@ -96,14 +97,13 @@ function Text({
 }) {
   return (
     <label className="block text-xs">
-      <span className="text-neutral-600">{label}</span>
+      <span className="text-ink-soft">{label}</span>
       <input
         type="text"
         value={value}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-md border border-neutral-300 px-2.5 py-2 text-sm
-                   focus:border-neutral-900 focus:outline-none"
+        className={fieldClass}
       />
     </label>
   );
@@ -126,16 +126,15 @@ function Area({
 }) {
   return (
     <label className="block text-xs">
-      <span className="text-neutral-600">{label}</span>
+      <span className="text-ink-soft">{label}</span>
       <textarea
         value={value}
         rows={rows}
         placeholder={placeholder}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1 w-full rounded-md border border-neutral-300 px-2.5 py-2 font-mono text-xs
-                   focus:border-neutral-900 focus:outline-none"
+        className={`${fieldClass} font-mono text-xs`}
       />
-      {hint && <span className="text-[11px] text-neutral-500">{hint}</span>}
+      {hint && <span className="text-[11px] text-ink-mute">{hint}</span>}
     </label>
   );
 }

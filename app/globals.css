@@ -2,10 +2,64 @@
 
 /* Tailwind v4 is CSS-first: theme tokens live here, not in a JS config. */
 @theme {
-  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-sans: var(--font-lato), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-display: var(--font-eb-garamond), Georgia, serif;
+
+  /*
+   * ────────────────────────────────────────────────────────────────────────────
+   * APP palette — the product chrome.
+   *
+   * From the ui-ux-pro-max design system (Soft UI Evolution / "navy professional"),
+   * persisted at design-system/visa-itinerary/MASTER.md.
+   *
+   * This namespace is SEPARATE from --color-doc-* below and must stay that way.
+   * The app palette is a brand choice and can be restyled freely; the document
+   * palette is measured from a printed airline receipt and changing it would make
+   * the output wrong rather than merely different. Two namespaces means a theme
+   * tweak can never silently repaint the deliverable.
+   * ────────────────────────────────────────────────────────────────────────────
+   */
+  /*
+   * Dark shell, light document. The deliberate point of the scheme: the generated
+   * A4 page stays white, so on a dark canvas it reads as a sheet of PAPER on a desk
+   * rather than one more panel in a stack of panels. The deliverable becomes the
+   * brightest thing on screen, which is where attention belongs.
+   *
+   * Style: "Modern Dark (Cinema Mobile)" — layered surfaces, frosted glass, ambient
+   * light. Never pure #000: it smears on OLED and kills the sense of depth that the
+   * elevation steps below rely on.
+   */
+  --color-canvas: #0a1120;
+  --color-surface: #111b2e;
+  --color-elevated: #16223a;
+  --color-primary: #3b82f6;
+  --color-primary-hover: #2f6fe0;
+  --color-on-primary: #ffffff;
+  --color-secondary: #7dd3fc;
+  /* Warm accent, chosen to rhyme with the document's own #CB3333 title red so the
+     tool and its output read as one product. */
+  --color-accent: #e14b3f;
+  --color-accent-hover: #c93a30;
+  --color-ink: #e9eef7;
+  --color-ink-soft: #a9b7cd;
+  --color-ink-mute: #77879f;
+  --color-muted: #1a2941;
+  --color-line: #25324b;
+  --color-destructive: #f87171;
+
+  /* Soft UI Evolution: softer than flat, clearer than neumorphism. */
+  /* Depth on a dark canvas comes from a light top edge plus a deep shadow — a
+     shadow alone is nearly invisible against #0a1120. */
+  --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 2px 8px rgba(0, 0, 0, 0.35);
+  --shadow-lift: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 8px 32px rgba(0, 0, 0, 0.5);
+  --shadow-paper: 0 24px 60px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
+
   --font-doc: "Helvetica Neue", Helvetica, Arial, sans-serif;
-  /* The reference receipt sets every heading in a light serif and the body in a
-     grotesque. Two families, used consistently. */
+  /*
+   * The document keeps a SYSTEM serif, not the app's webfont. It has to render
+   * identically on every machine and in print; a webfont that fails to load would
+   * reflow the deliverable, and that risk is not worth matching the app's type.
+   */
   --font-doc-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
 
   /*
@@ -34,6 +88,119 @@
 html,
 body {
   height: 100%;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+/*
+ * One focus style for the whole app. Defined once here rather than per component
+ * because the checklist item is "focus states visible for keyboard nav", and a
+ * per-component style is a per-component chance to forget it. `:focus-visible`
+ * so it appears for keyboard users without ringing every mouse click.
+ */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/*
+ * Respect the OS setting. Motion here is decorative — a progress bar easing and
+ * panel fades — so removing it costs nothing and leaving it in can cause real
+ * discomfort for people who asked for less of it.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Step panels fade in so a step change reads as a change, not a repaint. */
+@keyframes step-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.step-panel {
+  animation: step-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/*
+ * Ambient light. Two soft radial washes behind the hero — the "atmospheric" part of
+ * the style. Pure CSS rather than an image: no download, no licensing question, no
+ * layout shift, and it scales to any viewport without going soft.
+ *
+ * They drift slowly. `will-change: transform` keeps it on the compositor, and the
+ * global prefers-reduced-motion rule above stops it entirely for anyone who asked.
+ */
+.ambient::before,
+.ambient::after {
+  content: "";
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(72px);
+  opacity: 0.5;
+  pointer-events: none;
+  will-change: transform;
+}
+
+.ambient::before {
+  width: 30rem;
+  height: 30rem;
+  top: -12rem;
+  left: -8rem;
+  background: radial-gradient(circle, rgba(59, 130, 246, 0.55), transparent 68%);
+  animation: drift-a 22s ease-in-out infinite alternate;
+}
+
+.ambient::after {
+  width: 26rem;
+  height: 26rem;
+  right: -6rem;
+  bottom: -14rem;
+  background: radial-gradient(circle, rgba(225, 75, 63, 0.4), transparent 68%);
+  animation: drift-b 26s ease-in-out infinite alternate;
+}
+
+@keyframes drift-a {
+  to {
+    transform: translate3d(3rem, 2rem, 0) scale(1.12);
+  }
+}
+
+@keyframes drift-b {
+  to {
+    transform: translate3d(-2.5rem, -2rem, 0) scale(1.08);
+  }
+}
+
+/*
+ * Fine grid texture. An SVG data URI, so it is part of the stylesheet — one fewer
+ * request than a background image and it cannot 404.
+ */
+.grid-texture {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M40 0H0v40' fill='none' stroke='rgba(255,255,255,0.045)' stroke-width='1'/%3E%3C/svg%3E");
+}
+
+/* Frosted panel — the glassmorphism layer, used for the header and hero cards. */
+.glass {
+  background: rgba(17, 27, 46, 0.72);
+  backdrop-filter: blur(12px) saturate(140%);
+  -webkit-backdrop-filter: blur(12px) saturate(140%);
 }
 
 /*

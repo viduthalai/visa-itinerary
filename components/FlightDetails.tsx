@@ -1,5 +1,7 @@
 "use client";
 
+import { fieldClass, labelClass } from "@/components/ui";
+
 import { AirportPicker } from "@/components/AirportPicker";
 import { formatAirline } from "@/lib/airlines";
 import { formatDuration, offsetLabel } from "@/lib/duration";
@@ -10,10 +12,8 @@ type Props = {
   onChange: (patch: Partial<Segment>) => void;
 };
 
-const fieldClass =
-  "mt-1 w-full rounded-md border border-neutral-300 px-2.5 py-2 text-sm " +
-  "focus:border-neutral-900 focus:outline-none";
-const labelClass = "block text-xs font-medium text-neutral-600";
+// Field styling is shared — see components/ui.tsx. Local copies had already
+// drifted apart (different padding, one missing a hover state).
 
 /**
  * The flight itself. Airline and flight number are normally filled by choosing a
@@ -30,9 +30,9 @@ export function FlightDetails({
   const arriveOffset = d.destinationTz ? offsetLabel(segment.arrive, d.destinationTz) : null;
 
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4">
+    <div className="rounded-xl border border-line bg-surface p-5 shadow-[var(--shadow-card)]">
       <h3 className="text-sm font-medium">{heading}</h3>
-      <p className="mt-0.5 text-xs text-neutral-500">
+      <p className="mt-0.5 text-xs text-ink-mute">
         Filled by choosing a flight. Editable if you need to adjust anything.
       </p>
 
@@ -89,7 +89,7 @@ export function FlightDetails({
             value={segment.airlineCode}
             onChange={(e) => onChange({ airlineCode: e.target.value.toUpperCase() })}
           />
-          <span className="mt-1 block text-xs font-normal text-neutral-500">
+          <span className="mt-1 block text-xs font-normal text-ink-mute">
             {segment.airlineCode
               ? formatAirline(segment.airlineCode) === segment.airlineCode
                 ? "Unknown code — the document will show the code only."
@@ -110,8 +110,8 @@ export function FlightDetails({
         </label>
       </div>
 
-      <details className="mt-3 border-t border-neutral-100 pt-3">
-        <summary className="cursor-pointer text-xs font-medium text-neutral-700">
+      <details className="mt-3 border-t border-line pt-3">
+        <summary className="cursor-pointer text-xs font-medium text-ink-soft">
           Document details — terminals, cabin, baggage
         </summary>
         <div className="mt-3 grid gap-3 sm:grid-cols-3">
@@ -174,29 +174,29 @@ export function FlightDetails({
               value={segment.seatStatus}
               onChange={(e) => onChange({ seatStatus: e.target.value })}
             />
-            <span className="mt-1 block text-xs font-normal text-neutral-500">
+            <span className="mt-1 block text-xs font-normal text-ink-mute">
               Blank by default — the app will not assert a booking status for you.
             </span>
           </label>
         </div>
       </details>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-neutral-100
-                      pt-3 text-xs text-neutral-500">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-line
+                      pt-3 text-xs text-ink-mute">
         <span>
           Duration{" "}
           {d.durationMinutes === null ? (
-            <span className="text-neutral-400">—</span>
+            <span className="text-ink-mute">—</span>
           ) : (
             <span
               className={`font-mono font-semibold ${
-                d.durationMinutes < 0 ? "text-red-600" : "text-neutral-900"
+                d.durationMinutes < 0 ? "text-red-600" : "text-ink"
               }`}
             >
               {formatDuration(d.durationMinutes)}
             </span>
           )}
-          <span className="ml-1 text-neutral-400">(calculated)</span>
+          <span className="ml-1 text-ink-mute">(calculated)</span>
         </span>
 
         {departOffset && arriveOffset && (
@@ -205,7 +205,7 @@ export function FlightDetails({
           </span>
         )}
 
-        {d.nextDay && <span className="font-medium text-neutral-700">arrives next day</span>}
+        {d.nextDay && <span className="font-medium text-ink-soft">arrives next day</span>}
       </div>
     </div>
   );
@@ -259,7 +259,7 @@ export function RouteFields({
           />
         </label>
         <label className={labelClass}>
-          Return date <span className="font-normal text-neutral-400">— optional</span>
+          Return date <span className="font-normal text-ink-mute">— optional</span>
           <input
             type="date"
             className={fieldClass}
@@ -271,7 +271,7 @@ export function RouteFields({
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
-        <p className="text-xs text-neutral-500">
+        <p className="text-xs text-ink-mute">
           {returnDate
             ? `Round trip${reverseLabel ? ` — return leg ${reverseLabel}` : ""}.`
             : "Leave the return date blank for a one-way itinerary."}
@@ -280,7 +280,7 @@ export function RouteFields({
           <button
             type="button"
             onClick={() => onReturnDateChange("")}
-            className="text-xs text-neutral-600 underline underline-offset-2"
+            className="text-xs text-ink-soft underline underline-offset-2"
           >
             Make it one-way
           </button>

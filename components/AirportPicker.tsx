@@ -65,7 +65,7 @@ export function AirportPicker({ label, value, onChange, placeholder = "JFK" }: P
 
   return (
     <div ref={rootRef} className="relative">
-      <label className="block text-xs font-medium text-neutral-600">
+      <label className="block text-xs font-medium text-ink-soft">
         {label}
         <input
           type="text"
@@ -74,8 +74,9 @@ export function AirportPicker({ label, value, onChange, placeholder = "JFK" }: P
           aria-controls={listId}
           aria-autocomplete="list"
           autoComplete="off"
-          className="mt-1 w-full rounded-md border border-neutral-300 px-2.5 py-2 text-sm
-                     focus:border-neutral-900 focus:outline-none"
+          className="mt-1.5 min-h-11 w-full rounded-lg border border-line bg-elevated px-3 py-2 text-sm
+                     transition-colors duration-200 hover:border-ink-mute
+                     focus:border-primary focus:outline-none"
           placeholder={placeholder}
           value={open ? query : selected ? formatAirport(selected) : query}
           onChange={(e) => {
@@ -93,7 +94,7 @@ export function AirportPicker({ label, value, onChange, placeholder = "JFK" }: P
           id={listId}
           role="listbox"
           className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-md border
-                     border-neutral-200 bg-white py-1 shadow-lg"
+                     border-line bg-elevated py-1 shadow-[var(--shadow-lift)]"
         >
           {results.map((a, i) => (
             <li key={a.iata} role="option" aria-selected={i === active}>
@@ -104,12 +105,12 @@ export function AirportPicker({ label, value, onChange, placeholder = "JFK" }: P
                 onClick={() => commit(a)}
                 onMouseEnter={() => setActive(i)}
                 className={`flex w-full items-baseline gap-2 px-2.5 py-1.5 text-left text-sm ${
-                  i === active ? "bg-neutral-100" : ""
+                  i === active ? "bg-muted" : ""
                 }`}
               >
                 <span className="w-9 font-mono text-xs font-semibold">{a.iata}</span>
                 <span className="truncate">{a.name}</span>
-                <span className="ml-auto shrink-0 text-xs text-neutral-500">
+                <span className="ml-auto shrink-0 text-xs text-ink-mute">
                   {a.city ?? a.country}
                 </span>
               </button>
@@ -119,8 +120,8 @@ export function AirportPicker({ label, value, onChange, placeholder = "JFK" }: P
       )}
 
       {open && query.trim().length >= 2 && results.length === 0 && (
-        <div className="absolute z-10 mt-1 w-full rounded-md border border-neutral-200 bg-white
-                        px-2.5 py-2 text-sm text-neutral-500 shadow-lg">
+        <div className="absolute z-20 mt-1 w-full rounded-lg border border-line bg-elevated
+                        px-2.5 py-2 text-sm text-ink-mute shadow-[var(--shadow-lift)]">
           No airport matches “{query}”
         </div>
       )}

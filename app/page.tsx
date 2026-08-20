@@ -7,6 +7,8 @@ import { FareFields } from "@/components/FareFields";
 import { ItineraryDocument } from "@/components/ItineraryDocument";
 import { PassengerFields } from "@/components/PassengerFields";
 import { StepProgress, type StepDef } from "@/components/StepProgress";
+import { HeroBand } from "@/components/HeroBand";
+import { Button, Card } from "@/components/ui";
 import { getAirport } from "@/lib/airports";
 import { toPickedFlight } from "@/lib/flightPick";
 import type { FlightResult, SearchResponse } from "@/lib/flightSearch";
@@ -227,70 +229,63 @@ export default function Page() {
   const canContinue = step < STEPS.length && step < reachable;
 
   return (
-    <main className="mx-auto max-w-2xl p-8 pb-24">
-      <header className="flex items-baseline justify-between">
-        <h1 className="text-xl font-semibold">Visa Itinerary</h1>
-        <span className="font-mono text-xs text-neutral-500">PNR {itinerary.pnr || "—"}</span>
-      </header>
+    <>
+      <HeroBand reference={itinerary.pnr} />
 
-      <div className="mt-6">
+      <main id="main" className="mx-auto max-w-5xl px-4 pb-8 pt-10 sm:px-6">
+      <div className="mt-8">
         <StepProgress steps={STEPS} current={step} reachable={reachable} onJump={setStep} />
       </div>
 
-      <div className="mt-6">
-        <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-neutral-500">
+      {/* `key` on the step makes React remount the panel, which restarts the
+          fade — a step change should read as a change, not a silent repaint. */}
+      <div key={step} className="step-panel mt-8">
+        <h2 className="mb-3 font-[family-name:var(--font-display)] text-xl font-semibold text-ink">
           {STEPS[step - 1].title}
         </h2>
 
         {step === 1 && (
-          <div className="rounded-lg border border-neutral-200 bg-white p-4">
+          <Card>
             <RouteFields
               segment={segment}
               onChange={patchRoute}
               returnDate={returnDate}
               onReturnDateChange={setReturnDate}
             />
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={runSearch}
-                disabled={!canSearch || searching}
-                className="rounded-md bg-neutral-900 px-3.5 py-2 text-xs text-white
-                           disabled:cursor-not-allowed disabled:bg-neutral-300"
-              >
+            <div className="mt-4 flex flex-wrap items-center gap-3">
+              <Button type="button" onClick={runSearch} disabled={!canSearch || searching}>
                 {searching ? "Searching…" : returnDate ? "Search both flights" : "Search flights"}
-              </button>
+              </Button>
               {/*
                 The manual path has to stay reachable: search cannot return past
                 dates or a flight the provider does not carry, and removing this
                 would make those cases impossible rather than merely awkward.
               */}
-              <button
+              <Button
                 type="button"
+                variant="link"
                 onClick={() => setStep(3)}
                 disabled={!canSearch}
-                className="text-xs text-neutral-600 underline underline-offset-2
-                           disabled:cursor-not-allowed disabled:text-neutral-300 disabled:no-underline"
               >
-                Skip search — enter the flight manually
-              </button>
+                Skip search — enter flights manually
+              </Button>
             </div>
             {!canSearch && (
-              <p className="mt-2 text-xs text-neutral-500">
-                Pick two different airports and a departure date.
+              <p className="mt-3 text-xs text-ink-mute">
+                Pick two different airports and a departure date to search.
               </p>
             )}
             {searches.map((st, i) =>
               st.status === "error" ? (
                 <p
                   key={`err-${i}`}
-                  className="mt-2 rounded-md bg-red-50 px-2.5 py-2 text-xs text-red-700"
+                  className="mt-3 rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2 text-xs text-destructive"
                 >
                   {legLabel(itinerary.segments, i)}: {st.message}
                 </p>
               ) : null,
             )}
-          </div>
+          </Card>
         )}
 
         {step === 2 && (
@@ -300,7 +295,7 @@ export default function Page() {
               const legOrigin = getAirport(leg.originIata);
               if (!st || st.status !== "done" || !legOrigin) {
                 return (
-                  <p key={leg.id} className="text-sm text-neutral-500">
+                  <p key={leg.id} className="text-sm text-ink-mute">
                     {legLabel(itinerary.segments, i)}: no results —{" "}
                     {st?.status === "error"
                       ? "search failed, enter this leg by hand on the next step."
@@ -362,44 +357,48 @@ export default function Page() {
             <div className="mb-3">
               <FareFields fare={itinerary.fare} onChange={patchFare} />
             </div>
-            <div className="rounded-lg border border-neutral-200 bg-neutral-100 p-3">
-              <div className="mb-3 flex items-center justify-between">
-                <span className="text-xs text-neutral-600">Live preview</span>
-                <button
-                  type="button"
-                  onClick={() => window.print()}
-                  className="rounded-md bg-neutral-900 px-3.5 py-2 text-xs text-white"
-                >
-                  Print / Save as PDF
-                </button>
+            <Card className="bg-elevated">
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-ink">Live preview</p>
+                  <p className="text-xs text-ink-mute">
+                    What you download is this exact page — there is no second template.
+                  </p>
+                </div>
+                <Button type="button" variant="accent" onClick={() => window.print()}>
+                  <DownloadIcon />
+                  Save as PDF
+                </Button>
               </div>
-              <div className="overflow-hidden rounded-md shadow-sm">
+              <div className="overflow-hidden rounded-lg shadow-[var(--shadow-paper)]">
                 <ItineraryDocument itinerary={itinerary} />
               </div>
-            </div>
+            </Card>
           </>
         )}
       </div>
 
-      {/* Step navigation */}
-      <div className="mt-5 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={() => setStep((s) => Math.max(1, s - 1))}
-          disabled={step === 1}
-          className="rounded-md border border-neutral-300 px-3.5 py-2 text-xs text-neutral-700
-                     disabled:cursor-not-allowed disabled:border-neutral-200 disabled:text-neutral-300"
-        >
-          Back
-        </button>
-        {canContinue && (
-          <button
+      {/*
+        Step navigation. Back is ABSENT on step 1 rather than disabled — a disabled
+        control still occupies attention and invites a click that does nothing.
+        The empty span keeps Continue right-aligned without it.
+      */}
+      <div className="mt-6 flex items-center justify-between">
+        {step > 1 ? (
+          <Button
             type="button"
-            onClick={() => setStep((s) => s + 1)}
-            className="rounded-md bg-neutral-900 px-3.5 py-2 text-xs text-white"
+            variant="secondary"
+            onClick={() => setStep((s) => Math.max(1, s - 1))}
           >
+            Back
+          </Button>
+        ) : (
+          <span />
+        )}
+        {canContinue && (
+          <Button type="button" onClick={() => setStep((s) => s + 1)}>
             Continue
-          </button>
+          </Button>
         )}
       </div>
 
@@ -411,19 +410,101 @@ export default function Page() {
       {warnings.length > 0 && (
         <section
           aria-label="Warnings"
-          className="mt-5 rounded-md border border-amber-300 bg-amber-50 p-3"
+          className="mt-6 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4"
         >
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-amber-800">
-            Check these — they do not block generating the document
+          <h2 className="text-xs font-bold uppercase tracking-wider text-amber-300">
+            Worth checking — none of these block your document
           </h2>
-          <ul className="mt-1.5 space-y-0.5 text-sm text-amber-900">
+          <ul className="mt-2 space-y-1 text-sm text-amber-100/90">
             {warnings.map((w, i) => (
               <li key={`${w.segmentId}-${i}`}>{w.text}</li>
             ))}
           </ul>
         </section>
       )}
-    </main>
+
+      {/*
+        These two sections exist because the header and footer link to them. A nav
+        link pointing at an anchor that does not exist is a broken link, so the
+        content is real rather than placeholder marketing.
+      */}
+      <section id="how-it-works" className="mt-20 scroll-mt-20">
+        <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-ink">
+          How it works
+        </h2>
+        <ol className="mt-5 grid gap-4 sm:grid-cols-3">
+          {[
+            {
+              t: "Enter your route",
+              d: "Pick airports from 4,565 with IATA codes. Add a return date for a round trip, or leave it blank for one-way.",
+            },
+            {
+              t: "Choose your flights",
+              d: "Search returns carriers and times. Arrival is computed in the destination's timezone, so the document never prints a time that airport would not show.",
+            },
+            {
+              t: "Save the PDF",
+              d: "Add passengers and any terminal, cabin or baggage detail, then print. The preview is the PDF — there is no second template to drift.",
+            },
+          ].map((s2, i) => (
+            <li
+              key={s2.t}
+              className="rounded-xl border border-line bg-surface p-5 shadow-[var(--shadow-card)] transition-transform duration-200 hover:-translate-y-0.5"
+            >
+              <span
+                aria-hidden
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15
+                           font-[family-name:var(--font-display)] text-sm font-semibold text-secondary"
+              >
+                {i + 1}
+              </span>
+              <h3 className="mt-3 text-sm font-semibold text-ink">{s2.t}</h3>
+              <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{s2.d}</p>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section id="faq" className="mt-16 scroll-mt-20">
+        <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-ink">
+          FAQ
+        </h2>
+        <div className="mt-5 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface shadow-[var(--shadow-card)]">
+          {[
+            {
+              q: "Is this a booking?",
+              a: "No. It builds a document from details you enter. Nothing is reserved with any airline and no payment is taken.",
+            },
+            {
+              q: "Where does my data go?",
+              a: "Nowhere. Everything stays in your browser — there is no account and no database. Closing the tab discards it.",
+            },
+            {
+              q: "Are the flight times real?",
+              a: "Times come from the flight search where a provider is configured, and are recalculated in each airport's own timezone. Without a provider token the search returns clearly-labelled sample data.",
+            },
+            {
+              q: "Why is the reference number 6 characters?",
+              a: "It matches the shape airlines use. It is generated locally and resolves nowhere, so treat it as a document number rather than something anyone can look up.",
+            },
+          ].map((f) => (
+            <details key={f.q} className="group">
+              <summary className="flex cursor-pointer items-center justify-between gap-4 px-5 py-4 text-sm font-medium text-ink transition-colors duration-200 hover:bg-muted">
+                {f.q}
+                <span
+                  aria-hidden
+                  className="text-ink-mute transition-transform duration-200 group-open:rotate-180"
+                >
+                  <ChevronIcon />
+                </span>
+              </summary>
+              <p className="px-5 pb-4 text-sm leading-relaxed text-ink-soft">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+      </main>
+    </>
   );
 }
 
@@ -436,4 +517,21 @@ function legLabel(segments: Segment[], i: number): string {
   const route = s?.originIata && s?.destinationIata ? `${s.originIata} to ${s.destinationIata}` : "route not set";
   if (segments.length < 2) return route;
   return `${i === 0 ? "Outbound" : "Return"} — ${route}`;
+}
+
+function DownloadIcon() {
+  return (
+    <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3v12m0 0 4-4m-4 4-4-4" />
+      <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+    </svg>
+  );
+}
+
+function ChevronIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
 }

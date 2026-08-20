@@ -1,5 +1,7 @@
 "use client";
 
+import { fieldClass, labelClass } from "@/components/ui";
+
 import { formatPassenger, type Passenger } from "@/lib/itinerary";
 
 type Props = {
@@ -9,10 +11,8 @@ type Props = {
   onRemove: (id: string) => void;
 };
 
-const fieldClass =
-  "mt-1 w-full rounded-md border border-neutral-300 px-2.5 py-2 text-sm " +
-  "focus:border-neutral-900 focus:outline-none";
-const labelClass = "block text-xs font-medium text-neutral-600";
+// Field styling is shared — see components/ui.tsx. Local copies had already
+// drifted apart (different padding, one missing a hover state).
 
 /** Common titles. Free text is still allowed — this is a convenience, not a gate. */
 const TITLES = ["", "MR", "MRS", "MS", "MISS", "DR"];
@@ -25,9 +25,9 @@ const TITLES = ["", "MR", "MRS", "MS", "MISS", "DR"];
  */
 export function PassengerFields({ passengers, onChange, onAdd, onRemove }: Props) {
   return (
-    <div className="rounded-lg border border-neutral-200 bg-white p-4">
+    <div className="rounded-xl border border-line bg-surface p-5 shadow-[var(--shadow-card)]">
       <h2 className="text-sm font-medium">Passengers</h2>
-      <p className="mt-0.5 text-xs text-neutral-500">
+      <p className="mt-0.5 text-xs text-ink-mute">
         Enter names exactly as they appear in the passport.
       </p>
 
@@ -77,8 +77,8 @@ export function PassengerFields({ passengers, onChange, onAdd, onRemove }: Props
                   type="button"
                   onClick={() => onRemove(p.id)}
                   aria-label={`Remove passenger ${i + 1}`}
-                  className="mt-6 rounded-md px-2 py-1.5 text-xs text-neutral-500
-                             hover:bg-neutral-100 hover:text-red-600"
+                  className="mt-6 rounded-md px-2 py-1.5 text-xs text-ink-mute
+                             hover:bg-muted hover:text-red-600"
                 >
                   Remove
                 </button>
@@ -89,7 +89,7 @@ export function PassengerFields({ passengers, onChange, onAdd, onRemove }: Props
               )}
             </div>
 
-            <p className="mt-1 font-mono text-xs text-neutral-500">
+            <p className="mt-1 font-mono text-xs text-ink-mute">
               {formatPassenger(p) || "\u00a0"}
             </p>
           </li>
@@ -100,7 +100,7 @@ export function PassengerFields({ passengers, onChange, onAdd, onRemove }: Props
         type="button"
         onClick={onAdd}
         className="mt-3 rounded-md border border-dashed border-neutral-400 px-3.5 py-1.5 text-xs
-                   text-neutral-700 hover:border-neutral-900 hover:text-neutral-900"
+                   text-ink-soft hover:border-neutral-900 hover:text-ink"
       >
         + Add passenger
       </button>
