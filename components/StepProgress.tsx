@@ -1,5 +1,7 @@
 "use client";
 
+import { progressPct } from "@/lib/progress";
+
 export type StepDef = { n: number; title: string };
 
 /**
@@ -27,7 +29,7 @@ export function StepProgress({
   reachable: number;
   onJump: (n: number) => void;
 }) {
-  const pct = steps.length > 1 ? ((current - 1) / (steps.length - 1)) * 100 : 100;
+  const pct = progressPct(current, steps.length);
 
   return (
     <nav aria-label="Progress" className="select-none">
@@ -100,6 +102,11 @@ export function StepProgress({
         <div
           className="absolute inset-y-0 left-0 rounded-full bg-neutral-900 transition-all duration-300"
           style={{ width: `${pct}%` }}
+          role="progressbar"
+          aria-valuenow={current}
+          aria-valuemin={1}
+          aria-valuemax={steps.length}
+          aria-label={`Step ${current} of ${steps.length}`}
         />
       </div>
       <p className="mt-1.5 text-[11px] text-neutral-500">

@@ -87,15 +87,33 @@ export type Itinerary = {
   fare: Fare;
 };
 
+/*
+ * Ids for rows the USER adds. Deliberately not used for the initial row.
+ *
+ * A module-scoped counter is non-deterministic across a server/client boundary:
+ * `newItinerary()` runs once during SSR and again in the browser's `useState`
+ * initializer, so the first segment was `seg-1` on the server and a different
+ * value on the client. That is the same class of hazard as `Math.random()` — the
+ * one React's hydration error names explicitly.
+ *
+ * Those ids only become React keys today, not DOM attributes, so they were not
+ * the cause of any reported mismatch. Fixing it anyway: "currently invisible
+ * nondeterminism in the initial render" is a bug waiting for the first id that
+ * does reach the DOM.
+ */
 let seq = 0;
-function nextId(): string {
+function nextId(prefix: string): string {
   seq += 1;
-  return `seg-${seq}`;
+  return `${prefix}-added-${seq}`;
 }
 
-export function emptySegment(): Segment {
+/** The initial segment/passenger use FIXED ids — identical on server and client. */
+const INITIAL_SEGMENT_ID = "seg-initial";
+const INITIAL_PASSENGER_ID = "pax-initial";
+
+export function emptySegment(id: string = nextId("seg")): Segment {
   return {
-    id: nextId(),
+    id,
     originIata: null,
     destinationIata: null,
     depart: { date: "", time: "" },
@@ -111,9 +129,8 @@ export function emptySegment(): Segment {
   };
 }
 
-export function emptyPassenger(): Passenger {
-  seq += 1;
-  return { id: `pax-${seq}`, title: "", givenNames: "", surname: "" };
+export function emptyPassenger(id: string = nextId("pax")): Passenger {
+  return { id, title: "", givenNames: "", surname: "" };
 }
 
 /** `MR JOHN SMITH` — surname last, uppercase, the way travel documents print it. */
@@ -172,8 +189,10 @@ export function newItinerary(): Itinerary {
     pnr: "",
     ticketNumber: "",
     generatedAt: "",
-    passengers: [emptyPassenger()],
-    segments: [emptySegment()],
+    // Fixed ids: newItinerary() runs on BOTH the server and the client, so the
+    // initial tree must not depend on a counter.
+    passengers: [emptyPassenger(INITIAL_PASSENGER_ID)],
+    segments: [emptySegment(INITIAL_SEGMENT_ID)],
     fare: emptyFare(),
   };
 }
