@@ -1,5 +1,5 @@
 import { getAirport } from "@/lib/airports";
-import { arrivesNextDay, elapsedMinutes, type WallTime } from "@/lib/duration";
+import { arrivesNextDay, elapsedMinutes, shiftWallTime, type WallTime } from "@/lib/duration";
 
 export type Segment = {
   id: string;
@@ -149,7 +149,16 @@ export type SegmentDerived = {
   nextDay: boolean;
   originTz: string | null;
   destinationTz: string | null;
+  /**
+   * Guidance only: departure minus CHECK_IN_LEAD_MINUTES, in the origin's local
+   * wall clock. Derived, never entered — so it cannot contradict the departure
+   * time the way a free-text field would.
+   */
+  checkIn: WallTime | null;
 };
+
+/** Common international check-in lead. Named so the document and the timing band agree. */
+export const CHECK_IN_LEAD_MINUTES = 180;
 
 export function deriveSegment(s: Segment): SegmentDerived {
   const origin = getAirport(s.originIata);
@@ -165,6 +174,7 @@ export function deriveSegment(s: Segment): SegmentDerived {
     nextDay: Boolean(s.depart.date && s.arrive.date) && arrivesNextDay(s.depart, s.arrive),
     originTz: origin?.tz ?? null,
     destinationTz: destination?.tz ?? null,
+    checkIn: shiftWallTime(s.depart, -CHECK_IN_LEAD_MINUTES),
   };
 }
 

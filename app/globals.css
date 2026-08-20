@@ -4,6 +4,31 @@
 @theme {
   --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-doc: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* The reference receipt sets every heading in a light serif and the body in a
+     grotesque. Two families, used consistently. */
+  --font-doc-serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+
+  /*
+   * Document palette. Every value below was SAMPLED from a rendered reference
+   * receipt rather than guessed, which is why they are odd numbers: the greys
+   * are warm (#656665, not #666), the panel is faintly green (#F9FAF9), and the
+   * secondary accents are taupe/olive rather than blue-grey.
+   */
+  --color-doc-accent: #cb3333; /* section titles */
+  --color-doc-accent-deep: #a32731; /* wordmark block */
+  --color-doc-ink: #504e4c; /* body copy */
+  --color-doc-grey: #656665; /* city names, serif headings */
+  --color-doc-mute: #929392; /* footer, captions */
+  --color-doc-band: #b9bab9; /* "Departing »" band */
+  --color-doc-leg: #efede9; /* leg strip */
+  --color-doc-panel: #f9faf9; /* travel-information panel */
+  --color-doc-panel-edge: #e3e3e1;
+  --color-doc-ref: #f0f1f0; /* booking-reference band */
+  --color-doc-taupe: #d5cac3; /* check-in chevrons */
+  --color-doc-taupe-light: #dbd2ce;
+  --color-doc-khaki: #d9ccaa; /* route glyph */
+  --color-doc-olive: #91a05b; /* confirmed status */
+  --color-doc-warm: #9c9385; /* coupon validity dates */
 }
 
 html,
@@ -19,10 +44,13 @@ body {
 @media print {
   @page {
     size: A4;
-    margin: 12mm;
+    margin: 9mm;
   }
 
+  html,
   body {
+    margin: 0;
+    padding: 0;
     background: #fff;
   }
 
@@ -31,15 +59,58 @@ body {
     display: none !important;
   }
 
+  /*
+   * The rule above hides SIBLINGS but leaves ANCESTORS visible — and an ancestor
+   * keeps its own padding, max-width, rounded corners, border and shadow. The
+   * preview wrapper is `rounded-md shadow-sm` inside a padded card, so without
+   * this reset the PDF printed the document inside a small rounded card floating
+   * in the middle of the page. `:has()` matches exactly those ancestors.
+   *
+   * This was invisible in the on-screen preview and only appeared in the real
+   * generated PDF, which is why the PDF itself has to be checked, not the preview.
+   */
+  body :has(#itinerary-document) {
+    display: block !important;
+    width: auto !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    overflow: visible !important;
+  }
+
   #itinerary-document {
     position: static !important;
+    width: 100% !important;
     max-width: none !important;
+    margin: 0 !important;
     padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
     box-shadow: none !important;
   }
 
-  /* Keep the flight block from splitting across pages. */
-  #itinerary-document section {
+  /*
+   * Without this browsers strip background fills when printing "to save ink",
+   * which would silently return the PDF to the flat black-and-white version.
+   * The bands ARE the layout here, so the colour is not decorative.
+   */
+  #itinerary-document,
+  #itinerary-document * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /*
+   * Only the flight block must not split — a leg broken across a page boundary
+   * separates a departure from its arrival. The policy prose is free to flow, and
+   * has to be: applying this to every section forced the whole policy block onto
+   * page 2 and left a quarter of page 1 blank.
+   */
+  #itinerary-document [data-keep-together] {
     break-inside: avoid;
   }
 }

@@ -2,26 +2,39 @@
 
 import { airlineName } from "@/lib/airlines";
 import { getAirport } from "@/lib/airports";
-import { SPECIMEN_MARKING, TOOL_NAME } from "@/lib/config";
+import { DOCUMENT_TITLE, SPECIMEN_MARKING, TOOL_NAME } from "@/lib/config";
 import { formatDuration, offsetLabel } from "@/lib/duration";
 import { countryName } from "@/lib/countries";
 import { formatDocDate } from "@/lib/formatDate";
 import { deriveSegment, formatPassenger, type Itinerary } from "@/lib/itinerary";
 
 /**
- * Layout follows the information architecture of a standard airline itinerary
- * receipt — header band, passenger block, booking reference, travel notices,
- * check-in timings, a per-leg detail block, then generic policy sections.
+ * Layout and palette follow the information architecture of a standard airline
+ * itinerary receipt: warm top rule, wordmark block, centred serif title, a
+ * booking-reference band, two-column notices, a chevron check-in timing band, a
+ * bordered travel-information panel with a per-leg block, then policy sections.
+ *
+ * Colours are sampled from a rendered reference rather than invented, so the
+ * greys are warm and the accents taupe/olive — that is what makes the page read
+ * as a travel document rather than a generic invoice.
  *
  * What is NOT copied, deliberately:
- *   - No third-party airline logo, wordmark, brand colour or copyright line.
- *   - No verbatim carrier-specific copy (their hazardous-goods wording, their
- *     footer links, their "your ticket is stored in our booking system").
- *   - No barcode or scan instruction.
- *   - No "booked and confirmed" assertion. Seat status is blank unless the user
- *     sets it, so the app never claims a booking exists on its own.
- *   - Not titled Ticket, E-Ticket, Confirmation or Reservation.
- * The notice text below is generic industry information, written here.
+ *   - No third-party airline logo, wordmark, brand red or copyright line. The
+ *     mark block carries OUR name; the accent (#CB3333) is the title red, not a
+ *     carrier's logo colour.
+ *   - No verbatim carrier copy, no footer link set, no barcode or scan text.
+ *   - No "booked and confirmed" assertion in the body copy. Status is blank
+ *     unless the user sets it, so the app never fills that in on its own.
+ *
+ * The TITLE is a deliberate exception, added 2026-08-20 on Vidu's instruction:
+ * it now reads "Ticket & receipt", matching the reference. That is the strongest
+ * claim on the page, so it lives in lib/config.ts as DOCUMENT_TITLE rather than
+ * being hard-coded here, and it is tracked as a pre-release decision (P-2).
+ *
+ * Spacing between adjacent values (time and UTC offset, carrier and flight
+ * number) uses literal space characters, never CSS margins. A margin looks
+ * right on screen but collapses in COPIED TEXT, and this document is deliberately
+ * real selectable text rather than an image. That bug has appeared twice.
  */
 export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
   const segment = itinerary.segments[0];
@@ -32,291 +45,378 @@ export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
   const named = itinerary.passengers.filter((p) => p.surname.trim() || p.givenNames.trim());
   const carrier = airlineName(segment.airlineCode);
   const issued = itinerary.generatedAt ? itinerary.generatedAt.slice(0, 10) : "";
+  const departDate = segment.depart.date ? formatDocDate(segment.depart.date, false) : "—";
+  const arriveDate = segment.arrive.date ? formatDocDate(segment.arrive.date, false) : "—";
 
   return (
     <article
       id="itinerary-document"
-      className="relative mx-auto bg-white px-9 py-8 font-[family-name:var(--font-doc)]
-                 text-[10.5px] leading-snug text-neutral-900"
+      className="relative mx-auto bg-white font-[family-name:var(--font-doc)]
+                 text-[10px] leading-snug text-doc-ink"
       style={{ maxWidth: "210mm" }}
     >
       {SPECIMEN_MARKING && (
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-0 flex items-center justify-center
-                     text-6xl font-bold tracking-widest opacity-10"
+          className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center
+                     text-6xl font-bold tracking-widest text-doc-accent opacity-10"
           style={{ transform: "rotate(-24deg)" }}
         >
           SPECIMEN
         </div>
       )}
 
-      {/* Header band */}
-      <header className="flex items-start justify-between gap-8 border-b-2 border-neutral-800 pb-3">
-        <div>
-          <div className="text-base font-semibold tracking-tight">{TOOL_NAME}</div>
-          <h1 className="mt-0.5 text-[11px] font-semibold uppercase tracking-[0.14em]
-                         text-neutral-600">
-            Itinerary &amp; travel plan
+      {/* Warm top rule — the reference opens with a taupe-to-grey gradient band. */}
+      <div
+        aria-hidden
+        className="h-2"
+        style={{ background: "linear-gradient(90deg, #cebcb2 0%, #ddd4ce 45%, #edeceb 100%)" }}
+      />
+
+      <div className="px-8 pb-6 pt-5">
+        {/* Header: mark block · centred serif title · document number */}
+        <header className="flex items-start justify-between gap-6">
+          <div
+            className="flex h-[74px] w-[74px] flex-col items-center justify-center bg-doc-accent-deep
+                       px-1 text-center text-white"
+          >
+            <span className="font-[family-name:var(--font-doc-serif)] text-[15px] leading-none">
+              VI
+            </span>
+            <span className="mt-1 text-[6px] uppercase leading-tight tracking-[0.08em]">
+              Visa
+              <br />
+              Itinerary
+            </span>
+          </div>
+
+          <h1
+            className="mt-4 flex-1 whitespace-nowrap text-center font-[family-name:var(--font-doc-serif)]
+                       text-[25px] font-normal leading-none text-doc-accent"
+          >
+            {DOCUMENT_TITLE}
           </h1>
-        </div>
-        <div className="text-right">
-          <div className="text-[9px] uppercase tracking-wider text-neutral-500">
-            Document number
-          </div>
-          <div className="font-mono text-[11px] font-semibold">
-            {itinerary.ticketNumber || "—"}
-          </div>
-          <div className="mt-1 text-[9px] text-neutral-500">
-            Quote this reference in any correspondence about this itinerary.
-          </div>
-        </div>
-      </header>
 
-      {/* Passenger / issued-by */}
-      <section className="mt-3 grid grid-cols-[1.4fr_1fr_1fr] gap-6 border-b border-neutral-300 pb-3">
-        <Field label={`Passenger name${named.length === 1 ? "" : "s"}`}>
-          {named.length === 0 ? (
-            <span className="text-neutral-400">—</span>
-          ) : (
-            named.map((p) => (
-              <div key={p.id} className="font-medium tracking-wide">
-                {formatPassenger(p)}
-              </div>
-            ))
-          )}
-        </Field>
-        <Field label="Prepared by / date">
-          <div>{TOOL_NAME}</div>
-          <div>{issued ? formatDocDate(issued, false).toUpperCase() : "—"}</div>
-        </Field>
-        <Field label="Booking reference">
-          <span className="font-mono text-[13px] font-semibold tracking-wider">
-            {itinerary.pnr || "—"}
+          <div className="w-[230px] pt-1 text-center">
+            <div className="text-[11px] text-doc-grey">
+              Document number: {itinerary.ticketNumber || "—"}
+            </div>
+            <div className="mt-1 text-[7.5px] leading-tight text-doc-mute">
+              Quote this number in any correspondence about this itinerary. It is an internal
+              reference, not an airline ticket number.
+            </div>
+          </div>
+        </header>
+
+        {/* Passenger / prepared-by */}
+        <section className="mt-6 grid grid-cols-2 gap-8">
+          <Field label={`Passenger name${named.length === 1 ? "" : "s"}`}>
+            {named.length === 0 ? (
+              <span className="text-doc-mute">—</span>
+            ) : (
+              named.map((p) => (
+                <div key={p.id} className="tracking-wide">
+                  {formatPassenger(p)}
+                </div>
+              ))
+            )}
+          </Field>
+          <Field label="Prepared by / date">
+            <div>{TOOL_NAME}</div>
+            <div>{issued ? formatDocDate(issued, false).toUpperCase() : "—"}</div>
+          </Field>
+        </section>
+
+        {/* Booking-reference band */}
+        <div className="mt-4 bg-doc-ref px-4 py-2.5">
+          <span className="text-[11px] font-bold text-doc-grey">
+            Your booking reference: {itinerary.pnr || "—"}
           </span>
-        </Field>
-      </section>
-
-      {/* Travel notices — two columns, generic */}
-      <section className="mt-3 grid grid-cols-2 gap-6 border-b border-neutral-300 pb-3
-                          text-[9px] leading-relaxed text-neutral-600">
-        <div>
-          <p>
-            This document sets out the intended journey listed below. Keep it with your
-            travel documents — you may be asked to show a travel plan at the airport or
-            when applying for a visa.
-          </p>
-          <p className="mt-1.5">
-            All times shown are local to each airport, with the UTC offset in force on
-            that date.
-          </p>
         </div>
-        <div>
-          <p>
-            Check with your departure airport for restrictions on liquids, aerosols and
-            gels in hand baggage, and check the visa requirements for every country on
-            your route, including any you only transit.
-          </p>
-          <p className="mt-1.5">
-            Some items are restricted or forbidden on board, including spare lithium
-            batteries and smart bags. Check the carrier&apos;s dangerous goods
-            information before you travel.
-          </p>
-        </div>
-      </section>
 
-      {/* Check-in timing band — generic guidance */}
-      <section className="mt-3 grid grid-cols-4 gap-4 border-b border-neutral-300 pb-3
-                          text-[9px] leading-relaxed text-neutral-600">
-        <Timing head="Arrive at the airport">
-          Allow at least 3 hours before departure on international flights. Some airports
-          need up to 4 hours to complete all travel requirements.
-        </Timing>
-        <Timing head="90 minutes before">Be through security and passport control.</Timing>
-        <Timing head="60 minutes before">
-          Be ready at the gate for Economy and Premium Economy.
-        </Timing>
-        <Timing head="45 minutes before">Be ready at the gate for Business and First.</Timing>
-      </section>
+        {/* Travel notices — two columns, generic copy */}
+        <section
+          className="mt-4 grid grid-cols-2 gap-8 pb-4 text-[9.5px] leading-relaxed text-doc-ink"
+          style={{ borderBottom: "1px dotted #c9c9c7" }}
+        >
+          <div className="space-y-2">
+            <p>
+              This document sets out the intended journey listed below. It is a travel plan
+              prepared for your own records and for any application that asks for one — it
+              is not a reservation and confers no entitlement to travel.
+            </p>
+            <p>
+              You may be asked to show a travel plan at the airport or when applying for a
+              visa. Keep it with your travel documents.
+            </p>
+          </div>
+          <div className="space-y-2">
+            <p>
+              Check with your departure airport for restrictions on the carriage of liquids,
+              aerosols and gels in hand baggage, and check the visa requirements for every
+              country on your route — including any you only transit.
+            </p>
+            <p>
+              Some items are restricted or forbidden on board, including spare lithium
+              batteries and smart bags. Check the operating carrier&apos;s dangerous goods
+              information before you travel.
+            </p>
+          </div>
+        </section>
 
-      {/* Journey */}
-      <section className="mt-4">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em]">
-          Your travel information
-        </h2>
-        <p className="text-[9px] text-neutral-500">All times shown are local for each city</p>
+        {/* Check-in timing band — four chevrons, generic guidance */}
+        <section className="mt-5">
+          <div className="flex">
+            <Chevron first label="Check in online, or" />
+            <Chevron label="90 minutes" />
+            <Chevron label="60 minutes" />
+            <Chevron label="45 minutes" last />
+          </div>
+          <div className="mt-3 grid grid-cols-4 text-[8.5px] leading-relaxed text-doc-ink">
+            <TimingNote>
+              Check in at the airport. At most airports you need to arrive{" "}
+              <strong>3 hours</strong> before departure, but it can be up to{" "}
+              <strong>4 hours</strong> to complete all travel requirements. Check the best
+              time to arrive for your journey below.
+            </TimingNote>
+            <TimingNote>
+              90 minutes before take-off go through passport control.
+            </TimingNote>
+            <TimingNote>
+              60 minutes before take-off be ready at the gate (Premium Economy, Economy
+              Class).
+            </TimingNote>
+            <TimingNote last>
+              45 minutes before take-off be ready at the gate (First Class, Business Class).
+            </TimingNote>
+          </div>
+        </section>
 
-        <p className="mt-2 text-[10px] font-semibold">
-          Departing » From {origin?.city ?? origin?.name ?? "—"}
-          {origin?.country ? `, ${countryName(origin.country)}` : ""}
-        </p>
+        {/* Travel information panel */}
+        <section
+          data-keep-together
+          className="mt-6 border border-doc-panel-edge bg-doc-panel p-4"
+        >
+          <div className="flex items-end justify-between">
+            <h2 className="font-[family-name:var(--font-doc-serif)] text-[17px] leading-none text-doc-grey">
+              Your travel information
+            </h2>
+            <span className="text-[8px] text-doc-mute">
+              All times shown are local for each city
+            </span>
+          </div>
 
-        <div className="mt-1 border border-neutral-400">
-          <div className="border-b border-neutral-300 bg-neutral-100 px-3 py-1.5 text-[10px]">
-            <span className="font-semibold">Leg 1 of 1</span>
-            <span className="mx-1.5 text-neutral-400">|</span>
+          {/* Departing band */}
+          <div className="mt-3 flex items-center gap-2 bg-doc-band px-3 py-1.5 text-white">
+            <span aria-hidden className="text-[12px] leading-none">
+              ➜
+            </span>
+            <span className="text-[12px]">
+              Departing » From{" "}
+              <strong className="font-bold">
+                {origin?.city ?? origin?.name ?? "—"}
+                {origin?.country ? `, ${countryName(origin.country)}` : ""}
+              </strong>
+            </span>
+          </div>
+
+          {/* Leg strip */}
+          <div className="bg-doc-leg px-3 py-1 text-[8.5px] text-doc-ink">
+            <strong className="font-bold">Leg 1 of 1</strong>
+            <span className="mx-1.5">|</span>
             {origin?.city ?? "—"} ({origin?.iata ?? "—"}) to {destination?.city ?? "—"} (
             {destination?.iata ?? "—"})
             {carrier && (
               <>
-                <span className="mx-1.5 text-neutral-400">|</span>
+                <span className="mx-1.5">|</span>
                 Operated by {carrier}
               </>
             )}
           </div>
 
-          <div className="grid grid-cols-[0.85fr_0.85fr_1.3fr] divide-x divide-neutral-300">
-            {/* Flight */}
-            <Cell head="Flight">
-              <div className="font-mono text-[13px] font-semibold">
-                {segment.flightNumber || segment.airlineCode || "—"}
+          {/* Leg body */}
+          <div className="bg-white px-3 pb-3 pt-3">
+            {/* Departure row */}
+            <div className="grid grid-cols-[86px_92px_92px_1fr] items-start gap-2">
+              <div>
+                <Caption>Flight</Caption>
+                <div className="text-[16px] font-bold leading-tight text-doc-grey">
+                  {segment.flightNumber || segment.airlineCode || "—"}
+                </div>
+                {segment.cabinClass && (
+                  <div className="text-[8.5px] font-bold text-doc-ink">
+                    {segment.cabinClass}
+                  </div>
+                )}
+                {segment.fareBasis && (
+                  <div className="text-[8.5px] font-bold text-doc-ink">
+                    {segment.fareBasis}
+                  </div>
+                )}
               </div>
-              {segment.cabinClass && <div className="mt-1">{segment.cabinClass}</div>}
-              {segment.fareBasis && (
-                <div className="text-neutral-500">{segment.fareBasis}</div>
-              )}
-            </Cell>
-
-            {/* Check-in */}
-            <Cell head="Check-in opens">
-              <div>{segment.depart.date ? formatDocDate(segment.depart.date, false) : "—"}</div>
-              <div className="text-neutral-500">
-                Refer to the carrier — typically 3 hours before departure.
+              <div>
+                <Caption>Check-in at</Caption>
+                <div className="text-[8.5px]">
+                  {derived.checkIn ? formatDocDate(derived.checkIn.date, false) : "—"}
+                </div>
+                <div className="text-[17px] font-bold leading-tight text-doc-grey">
+                  {derived.checkIn?.time ?? "—:—"}
+                </div>
               </div>
-            </Cell>
-
-            {/* Departure */}
-            <Cell head="Departure">
-              <div className="text-[11px] font-semibold uppercase tracking-wide">
-                {origin?.city ?? "—"}
-              </div>
-              <div className="text-neutral-600">
-                {segment.depart.date ? formatDocDate(segment.depart.date, false) : "—"}
-              </div>
-              <div className="mt-0.5">
-                <span className="font-mono text-[15px] font-semibold">
+              <div>
+                <Caption>Departure</Caption>
+                <div className="text-[8.5px]">{departDate}</div>
+                <div className="text-[17px] font-bold leading-tight text-doc-grey">
                   {segment.depart.time || "—:—"}
-                </span>
+                </div>
                 {derived.originTz && segment.depart.time && (
-                  <>
-                    {" "}
-                    <span className="font-mono text-[9px] text-neutral-500">
-                      {offsetLabel(segment.depart, derived.originTz)}
-                    </span>
-                  </>
+                  <div className="text-[8px] text-doc-mute">
+                    {offsetLabel(segment.depart, derived.originTz)}
+                  </div>
                 )}
               </div>
-              <div className="mt-0.5 text-neutral-600">
-                Departing {origin?.iata ?? "—"}, {origin?.name ?? "—"}
+              <div className="flex items-start gap-3">
+                <RouteGlyph />
+                <div>
+                  <div className="text-[19px] font-bold uppercase leading-none text-doc-grey">
+                    {origin?.city ?? "—"}
+                  </div>
+                  <div className="mt-1 text-[8.5px] font-bold text-doc-ink">
+                    Departing {origin?.iata ?? "—"}, {origin?.name ?? "—"}
+                  </div>
+                  {segment.departTerminal && (
+                    <div className="text-[8.5px] font-bold text-doc-ink">
+                      Terminal {segment.departTerminal}
+                    </div>
+                  )}
+                </div>
               </div>
-              {segment.departTerminal && <div>Terminal {segment.departTerminal}</div>}
-            </Cell>
-          </div>
+            </div>
 
-          <div className="grid grid-cols-[0.85fr_0.85fr_1.3fr] divide-x divide-neutral-300
-                          border-t border-neutral-300">
-            <Cell head="Seat">
-              <span className="text-neutral-400">Not assigned</span>
-            </Cell>
-
-            <Cell head="Status">
-              {segment.seatStatus ? (
-                segment.seatStatus
-              ) : (
-                <span className="text-neutral-400">—</span>
-              )}
-            </Cell>
-
-            <Cell head="Arrival">
-              <div className="text-[11px] font-semibold uppercase tracking-wide">
-                {destination?.city ?? "—"}
+            {/* Arrival row */}
+            <div className="mt-4 grid grid-cols-[86px_92px_92px_1fr] items-start gap-2">
+              <div>
+                <Caption>Seat</Caption>
+                <div className="text-[8.5px] text-doc-mute">Not assigned</div>
               </div>
-              <div className="text-neutral-600">
-                {segment.arrive.date ? formatDocDate(segment.arrive.date, false) : "—"}
+              <div>
+                <Caption>Status</Caption>
+                {segment.seatStatus ? (
+                  <div className="text-[12px] font-bold leading-tight text-doc-olive">
+                    {segment.seatStatus}
+                  </div>
+                ) : (
+                  <div className="text-[8.5px] text-doc-mute">—</div>
+                )}
               </div>
-              <div className="mt-0.5">
-                <span className="font-mono text-[15px] font-semibold">
+              <div>
+                <Caption>Arrival</Caption>
+                <div className="text-[8.5px]">{arriveDate}</div>
+                <div className="text-[17px] font-bold leading-tight text-doc-grey">
                   {segment.arrive.time || "—:—"}
-                </span>
+                </div>
                 {derived.destinationTz && segment.arrive.time && (
-                  <>
-                    {" "}
-                    <span className="font-mono text-[9px] text-neutral-500">
-                      {offsetLabel(segment.arrive, derived.destinationTz)}
-                    </span>
-                  </>
+                  <div className="text-[8px] text-doc-mute">
+                    {offsetLabel(segment.arrive, derived.destinationTz)}
+                  </div>
                 )}
               </div>
-              <div className="mt-0.5 text-neutral-600">
-                Arriving {destination?.iata ?? "—"}, {destination?.name ?? "—"}
+              <div className="flex items-start gap-3">
+                <RouteGlyph arriving />
+                <div>
+                  <div className="text-[19px] font-bold uppercase leading-none text-doc-grey">
+                    {destination?.city ?? "—"}
+                  </div>
+                  <div className="mt-1 text-[8.5px] font-bold text-doc-ink">
+                    Arriving {destination?.iata ?? "—"}, {destination?.name ?? "—"}
+                  </div>
+                  {segment.arriveTerminal && (
+                    <div className="text-[8.5px] font-bold text-doc-ink">
+                      Terminal {segment.arriveTerminal}
+                    </div>
+                  )}
+                  {derived.nextDay && (
+                    <div className="text-[8.5px] font-bold text-doc-warm">
+                      Arrives the following day.
+                    </div>
+                  )}
+                </div>
               </div>
-              {segment.arriveTerminal && <div>Terminal {segment.arriveTerminal}</div>}
-              {derived.nextDay && (
-                <div className="font-medium">Arrives the following day.</div>
-              )}
-            </Cell>
-          </div>
+            </div>
 
-          <div className="flex items-baseline justify-between gap-4 border-t border-neutral-300
-                          bg-neutral-50 px-3 py-1.5 text-[9px] text-neutral-600">
-            <span>
-              Journey time{" "}
-              <span className="font-mono font-semibold text-neutral-900">
-                {derived.durationMinutes !== null && derived.durationMinutes >= 0
-                  ? formatDuration(derived.durationMinutes)
-                  : "—"}
+            {/* Journey time / baggage strip */}
+            <div className="mt-4 flex items-center gap-6 border-t border-doc-panel-edge pt-2">
+              <span className="text-[8.5px] text-doc-ink">
+                Journey time{" "}
+                <strong className="font-bold text-doc-warm">
+                  {derived.durationMinutes !== null && derived.durationMinutes >= 0
+                    ? formatDuration(derived.durationMinutes)
+                    : "—"}
+                </strong>
               </span>
-            </span>
-            <span>Baggage {segment.baggage || "refer to the carrier"}</span>
+              <span className="text-[8.5px] text-doc-ink">
+                {/* The reference prints "Coupon validity: not before / not after",
+                    which asserts a ticket coupon. This slot keeps the layout
+                    without making that claim. */}
+                Travel date <strong className="font-bold text-doc-warm">{departDate}</strong>
+              </span>
+              <span className="font-[family-name:var(--font-doc-serif)] text-[15px] text-doc-grey">
+                Baggage {segment.baggage || "refer to the carrier"}
+              </span>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
 
-      {/* Generic policy sections */}
-      <section className="mt-4 border-t border-neutral-300 pt-3">
-        <h2 className="text-[10px] font-semibold uppercase tracking-[0.12em]">
-          Baggage and cabin items
-        </h2>
-        <p className="mt-1 text-[9px] leading-relaxed text-neutral-600">
-          Cabin baggage allowances differ by carrier and cabin. A common allowance is one
-          piece up to 55 × 38 × 22 cm and 7 kg in Economy, and up to 10 kg in a premium
-          cabin, but the carrier&apos;s published allowance applies. Checked allowances
-          also vary by route and fare. Confirm both with the operating carrier before you
-          travel.
-        </p>
+        {/* Generic policy sections */}
+        <section className="mt-6 bg-doc-ref px-4 py-4">
+          <h2 className="font-[family-name:var(--font-doc-serif)] text-[15px] leading-none text-doc-grey">
+            Baggage and cabin items
+          </h2>
+          <p className="mt-2 text-[8.5px] leading-relaxed text-doc-ink">
+            Cabin baggage allowances differ by carrier and cabin. A common allowance is one
+            piece up to 55 × 38 × 22 cm and 7 kg in Economy, and up to 10 kg in a premium
+            cabin, but the operating carrier&apos;s published allowance applies. Checked
+            allowances also vary by route and fare. Confirm both with the operating carrier
+            before you travel.
+          </p>
 
-        <h2 className="mt-3 text-[10px] font-semibold uppercase tracking-[0.12em]">
-          Restricted and dangerous goods
-        </h2>
-        <p className="mt-1 text-[9px] leading-relaxed text-neutral-600">
-          Carrying certain hazardous materials — aerosols, fireworks, flammable liquids —
-          is forbidden on board. Personal motorised vehicles such as hoverboards and
-          self-balancing wheels are generally refused as both checked and cabin baggage
-          because of their lithium batteries. Where a restriction is unclear, ask the
-          operating carrier.
-        </p>
+          <h2 className="mt-4 font-[family-name:var(--font-doc-serif)] text-[15px] leading-none text-doc-grey">
+            Restricted and dangerous goods
+          </h2>
+          <p className="mt-2 text-[8.5px] leading-relaxed text-doc-ink">
+            Carrying certain hazardous materials — aerosols, fireworks, flammable liquids —
+            is forbidden on board. Personal motorised vehicles such as hoverboards and
+            self-balancing wheels are generally refused as both checked and cabin baggage
+            because of their lithium batteries. Where a restriction is unclear, ask the
+            operating carrier.
+          </p>
 
-        <h2 className="mt-3 text-[10px] font-semibold uppercase tracking-[0.12em]">
-          Entry requirements
-        </h2>
-        <p className="mt-1 text-[9px] leading-relaxed text-neutral-600">
-          You are responsible for holding a passport, visas and any transit permits
-          required for every country on this itinerary. Requirements depend on your
-          nationality and can change at short notice. Check the official source for each
-          country before booking or travelling.
-        </p>
-      </section>
+          <h2 className="mt-4 font-[family-name:var(--font-doc-serif)] text-[15px] leading-none text-doc-grey">
+            Entry requirements
+          </h2>
+          <p className="mt-2 text-[8.5px] leading-relaxed text-doc-ink">
+            You are responsible for holding a passport, visas and any transit permits
+            required for every country on this itinerary. Requirements depend on your
+            nationality and can change at short notice. Check the official source for each
+            country before booking or travelling.
+          </p>
+        </section>
 
-      <footer className="mt-5 flex items-baseline justify-between border-t border-neutral-300 pt-2
-                         text-[9px] text-neutral-500">
-        <span>
-          {TOOL_NAME}
-          {issued && <> · prepared {formatDocDate(issued, false)}</>}
-        </span>
-        <span>
-          Booking reference {itinerary.pnr || "—"} · Page 1 of 1
-        </span>
-      </footer>
+        <footer className="mt-5 flex items-baseline justify-between border-t border-doc-panel-edge pt-2 text-[8.5px] text-doc-mute">
+          <span>
+            {TOOL_NAME}
+            {issued && <> · prepared {formatDocDate(issued, false)}</>} · travel plan, not a
+            reservation
+          </span>
+          {/*
+            No "Page 1 of 1" here. It was hard-coded and the generated PDF runs to
+            two pages, so it printed a false count. HTML cannot know the paginated
+            total, and Chrome does not support @page margin-box counters — so the
+            claim is dropped rather than guessed.
+          */}
+          <span>Booking reference {itinerary.pnr || "—"}</span>
+        </footer>
+      </div>
     </article>
   );
 }
@@ -324,26 +424,78 @@ export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div>
-      <div className="text-[9px] uppercase tracking-wider text-neutral-500">{label}</div>
-      <div className="mt-0.5">{children}</div>
+      <div className="text-[8.5px] text-doc-mute">{label}</div>
+      <div className="mt-0.5 text-[10px] uppercase text-doc-ink">{children}</div>
     </div>
   );
 }
 
-function Timing({ head, children }: { head: string; children: React.ReactNode }) {
+function Caption({ children }: { children: React.ReactNode }) {
+  return <div className="text-[8px] text-doc-mute">{children}</div>;
+}
+
+/**
+ * Chevron segment of the check-in timing band. Built with clip-path rather than
+ * an image so it stays vector-sharp in the PDF and carries no bitmap payload.
+ *
+ * The reference sets pictograms in these. Emoji were tried and rejected: they
+ * resolve to whatever colour emoji font the machine has, so the same document
+ * printed on two computers would not match — and they read as cartoonish next to
+ * a serif label. Line-art would need real SVG; the labels carry the meaning.
+ */
+function Chevron({
+  label,
+  first,
+  last,
+}: {
+  label: string;
+  first?: boolean;
+  last?: boolean;
+}) {
   return (
-    <div>
-      <div className="text-[9px] font-semibold text-neutral-800">{head}</div>
-      <div className="mt-0.5">{children}</div>
+    <div
+      className={`relative flex h-[40px] items-center pr-7 ${first ? "flex-[1.35] pl-4" : "flex-1 pl-7"}`}
+      style={{
+        background: "linear-gradient(90deg, #d5cac3 0%, #dbd2ce 100%)",
+        clipPath: first
+          ? "polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%)"
+          : last
+            ? "polygon(0 0, 100% 0, 100% 100%, 0 100%, 16px 50%)"
+            : "polygon(0 0, calc(100% - 16px) 0, 100% 50%, calc(100% - 16px) 100%, 0 100%, 16px 50%)",
+        marginLeft: first ? 0 : -10,
+      }}
+    >
+      <span className="whitespace-nowrap font-[family-name:var(--font-doc-serif)] text-[12.5px] leading-none text-doc-ink">
+        {label}
+      </span>
     </div>
   );
 }
 
-function Cell({ head, children }: { head: string; children: React.ReactNode }) {
+function TimingNote({ children, last }: { children: React.ReactNode; last?: boolean }) {
   return (
-    <div className="px-3 py-2">
-      <div className="text-[9px] uppercase tracking-wider text-neutral-500">{head}</div>
-      <div className="mt-0.5">{children}</div>
+    <div
+      className="px-3 first:pl-0"
+      style={last ? undefined : { borderRight: "1px dotted #c9c9c7" }}
+    >
+      {children}
     </div>
+  );
+}
+
+/** Origin/destination route marker — dot, dashes, aircraft, dot. */
+function RouteGlyph({ arriving }: { arriving?: boolean }) {
+  return (
+    <span
+      aria-hidden
+      className="mt-1 flex items-center gap-[2px]"
+      style={{ color: "#c8b98f" }}
+    >
+      <span className="text-[9px] leading-none">{arriving ? "○" : "●"}</span>
+      <span className="text-[8px] leading-none tracking-tighter">– –</span>
+      <span className="text-[13px] leading-none">✈</span>
+      <span className="text-[8px] leading-none tracking-tighter">– –</span>
+      <span className="text-[9px] leading-none">{arriving ? "●" : "○"}</span>
+    </span>
   );
 }

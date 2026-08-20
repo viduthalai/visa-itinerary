@@ -4,6 +4,7 @@ import {
   elapsedMinutes,
   formatDuration,
   offsetLabel,
+  shiftWallTime,
   wallTimeToInstant,
 } from "@/lib/duration";
 
@@ -125,5 +126,35 @@ describe("helpers", () => {
   it("resolves a wall time to a real instant", () => {
     const i = wallTimeToInstant({ date: "2026-10-15", time: "17:30" }, JFK);
     expect(i?.toISOString()).toBe("2026-10-15T21:30:00.000Z"); // EDT = GMT-4
+  });
+});
+
+describe("shiftWallTime", () => {
+  it("subtracts within the same day", () => {
+    expect(shiftWallTime({ date: "2026-10-15", time: "21:00" }, -180)).toEqual({
+      date: "2026-10-15",
+      time: "18:00",
+    });
+  });
+
+  it("rolls back to the previous day for an early departure", () => {
+    // A 01:00 flight checks in the night BEFORE. Printing 22:00 against the
+    // departure date would put the passenger at the airport a day late.
+    expect(shiftWallTime({ date: "2026-10-15", time: "01:00" }, -180)).toEqual({
+      date: "2026-10-14",
+      time: "22:00",
+    });
+  });
+
+  it("crosses a year boundary", () => {
+    expect(shiftWallTime({ date: "2027-01-01", time: "02:30" }, -180)).toEqual({
+      date: "2026-12-31",
+      time: "23:30",
+    });
+  });
+
+  it("returns null when the time is incomplete", () => {
+    expect(shiftWallTime({ date: "2026-10-15", time: "" }, -180)).toBeNull();
+    expect(shiftWallTime({ date: "", time: "21:00" }, -180)).toBeNull();
   });
 });

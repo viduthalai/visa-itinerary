@@ -131,6 +131,30 @@ export function offsetLabel(w: WallTime, tz: string): string | null {
 }
 
 /** True when the arrival falls on a later calendar day than the departure. */
+/**
+ * Shift a wall time by whole minutes, staying in the SAME timezone — so no
+ * offset lookup is involved and none is wanted. Rolling back across midnight
+ * changes the date, which is why this returns a full WallTime and not a string:
+ * a 01:00 departure has a check-in on the previous calendar day, and printing
+ * 22:00 against the departure date would be wrong.
+ *
+ * Date arithmetic goes through Date.UTC deliberately. `new Date("2026-01-01")`
+ * parsed as local time lands on 31 Dec in any negative-offset zone.
+ */
+export function shiftWallTime(w: WallTime, minutes: number): WallTime | null {
+  if (!w.date || !w.time) return null;
+  const [y, mo, d] = w.date.split("-").map(Number);
+  const [h, mi] = w.time.split(":").map(Number);
+  if ([y, mo, d, h, mi].some((n) => !Number.isFinite(n))) return null;
+
+  const shifted = new Date(Date.UTC(y, mo - 1, d, h, mi) + minutes * 60_000);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return {
+    date: `${shifted.getUTCFullYear()}-${pad(shifted.getUTCMonth() + 1)}-${pad(shifted.getUTCDate())}`,
+    time: `${pad(shifted.getUTCHours())}:${pad(shifted.getUTCMinutes())}`,
+  };
+}
+
 export function arrivesNextDay(depart: WallTime, arrive: WallTime): boolean {
   return arrive.date > depart.date;
 }
