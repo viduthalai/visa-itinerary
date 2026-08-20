@@ -3,7 +3,16 @@
 import { useEffect, useMemo, useState } from "react";
 import { FlightDetails, RouteFields } from "@/components/FlightDetails";
 import { FlightSearch, type PickedFlight } from "@/components/FlightSearch";
-import { generatePnr, newItinerary, type Segment, warningsFor } from "@/lib/itinerary";
+import { PassengerFields } from "@/components/PassengerFields";
+import {
+  emptyPassenger,
+  generatePnr,
+  newItinerary,
+  type Passenger,
+  passengerWarnings,
+  type Segment,
+  warningsFor,
+} from "@/lib/itinerary";
 
 /** One flight, no more. Search picks it; the fields below let you adjust it. */
 export default function Page() {
@@ -19,13 +28,31 @@ export default function Page() {
   }, []);
 
   const segment = itinerary.segments[0];
-  const warnings = useMemo(() => warningsFor([segment]), [segment]);
+  const warnings = useMemo(
+    () => [...warningsFor([segment]), ...passengerWarnings(itinerary.passengers)],
+    [segment, itinerary.passengers],
+  );
 
   function patch(p: Partial<Segment>) {
     setItinerary((it) => ({
       ...it,
       segments: [{ ...it.segments[0], ...p }],
     }));
+  }
+
+  function patchPassenger(id: string, p: Partial<Passenger>) {
+    setItinerary((it) => ({
+      ...it,
+      passengers: it.passengers.map((x) => (x.id === id ? { ...x, ...p } : x)),
+    }));
+  }
+
+  function addPassenger() {
+    setItinerary((it) => ({ ...it, passengers: [...it.passengers, emptyPassenger()] }));
+  }
+
+  function removePassenger(id: string) {
+    setItinerary((it) => ({ ...it, passengers: it.passengers.filter((x) => x.id !== id) }));
   }
 
   function applyPicked(f: PickedFlight) {
@@ -74,6 +101,20 @@ export default function Page() {
           </h2>
           <div className="mt-2">
             <FlightDetails segment={segment} onChange={patch} />
+          </div>
+        </li>
+
+        <li>
+          <h2 className="text-xs font-semibold uppercase tracking-wide text-neutral-500">
+            Step 4 — Passengers
+          </h2>
+          <div className="mt-2">
+            <PassengerFields
+              passengers={itinerary.passengers}
+              onChange={patchPassenger}
+              onAdd={addPassenger}
+              onRemove={removePassenger}
+            />
           </div>
         </li>
       </ol>

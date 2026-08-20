@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { deriveSegment, emptySegment, generatePnr, warningsFor, type Segment } from "@/lib/itinerary";
+import {
+  deriveSegment,
+  emptySegment,
+  formatPassenger,
+  generatePnr,
+  type Passenger,
+  passengerWarnings,
+  warningsFor,
+  type Segment,
+} from "@/lib/itinerary";
 
 function seg(patch: Partial<Segment>): Segment {
   return { ...emptySegment(), ...patch };
@@ -13,6 +22,92 @@ describe("generatePnr", () => {
       expect(Number(p)).toBeGreaterThanOrEqual(10000);
       expect(Number(p)).toBeLessThanOrEqual(99999);
     }
+  });
+});
+
+describe("formatPassenger", () => {
+  it("prints title, given names, surname, uppercased", () => {
+    expect(
+      formatPassenger({ id: "p1", title: "Mr", givenNames: "John", surname: "Smith" }),
+    ).toBe("MR JOHN SMITH");
+  });
+
+  it("skips missing parts without leaving double spaces", () => {
+    expect(formatPassenger({ id: "p1", title: "", givenNames: "Ada", surname: "Lovelace" })).toBe(
+      "ADA LOVELACE",
+    );
+    expect(formatPassenger({ id: "p1", title: "DR", givenNames: "", surname: "Who" })).toBe(
+      "DR WHO",
+    );
+  });
+
+  it("is empty when nothing is entered", () => {
+    expect(formatPassenger({ id: "p1", title: "", givenNames: "", surname: "" })).toBe("");
+  });
+});
+
+describe("passengerWarnings", () => {
+  const pax = (patch: Partial<Passenger>): Passenger => ({
+    id: "p",
+    title: "",
+    givenNames: "",
+    surname: "",
+    ...patch,
+  });
+
+  it("flags an entirely empty passenger list", () => {
+    expect(passengerWarnings([pax({})]).map((w) => w.text)).toContain(
+      "No passenger name entered.",
+    );
+  });
+
+  it("is silent on a complete passenger", () => {
+    expect(passengerWarnings([pax({ givenNames: "John", surname: "Smith" })])).toEqual([]);
+  });
+
+  it("flags a missing surname but not an empty row", () => {
+    const w = passengerWarnings([pax({ givenNames: "John" })]).map((x) => x.text);
+    expect(w).toContain("Passenger 1 has no surname.");
+    expect(w).not.toContain("No passenger name entered.");
+  });
+
+  it("flags missing given names", () => {
+    expect(passengerWarnings([pax({ surname: "Smith" })]).map((x) => x.text)).toContain(
+      "Passenger 1 has no given names.",
+    );
+  });
+
+  it("flags two passengers with the same name", () => {
+    const w = passengerWarnings([
+      pax({ id: "a", givenNames: "John", surname: "Smith" }),
+      pax({ id: "b", givenNames: "John", surname: "Smith" }),
+    ]).map((x) => x.text);
+    expect(w).toContain("Two passengers have the same name (JOHN SMITH).");
+  });
+
+  it("ignores title when comparing — MR JOHN SMITH is the same person as JOHN SMITH", () => {
+    const w = passengerWarnings([
+      pax({ id: "a", title: "MR", givenNames: "John", surname: "Smith" }),
+      pax({ id: "b", title: "", givenNames: "John", surname: "Smith" }),
+    ]).map((x) => x.text);
+    expect(w).toContain("Two passengers have the same name (JOHN SMITH).");
+  });
+
+  it("ignores case and surrounding whitespace when comparing", () => {
+    const w = passengerWarnings([
+      pax({ id: "a", givenNames: "john", surname: "smith" }),
+      pax({ id: "b", givenNames: " John ", surname: "SMITH" }),
+    ]).map((x) => x.text);
+    expect(w).toContain("Two passengers have the same name (JOHN SMITH).");
+  });
+
+  it("does not flag two different passengers", () => {
+    expect(
+      passengerWarnings([
+        pax({ id: "a", givenNames: "John", surname: "Smith" }),
+        pax({ id: "b", givenNames: "Jane", surname: "Smith" }),
+      ]),
+    ).toEqual([]);
   });
 });
 

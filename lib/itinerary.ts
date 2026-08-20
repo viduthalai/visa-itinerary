@@ -73,7 +73,48 @@ export function generatePnr(): string {
  * effect — see app/page.tsx.
  */
 export function newItinerary(): Itinerary {
-  return { pnr: "", generatedAt: "", passengers: [], segments: [emptySegment()] };
+  return {
+    pnr: "",
+    generatedAt: "",
+    passengers: [emptyPassenger()],
+    segments: [emptySegment()],
+  };
+}
+
+/** Passenger-level checks. Non-blocking, same as the flight warnings. */
+export function passengerWarnings(passengers: Passenger[]): Warning[] {
+  const out: Warning[] = [];
+
+  const named = passengers.filter((p) => p.surname.trim() || p.givenNames.trim());
+  if (named.length === 0) {
+    out.push({ segmentId: null, text: "No passenger name entered." });
+  }
+
+  passengers.forEach((p, i) => {
+    const hasSomething = p.surname.trim() || p.givenNames.trim();
+    if (hasSomething && !p.surname.trim()) {
+      out.push({ segmentId: null, text: `Passenger ${i + 1} has no surname.` });
+    }
+    if (hasSomething && !p.givenNames.trim()) {
+      out.push({ segmentId: null, text: `Passenger ${i + 1} has no given names.` });
+    }
+  });
+
+  // Identity is given names + surname. Title is NOT part of it — "MR JOHN SMITH"
+  // and "JOHN SMITH" are the same person entered twice, which is exactly the
+  // mistake worth catching. (Found in the browser; the unit test originally used
+  // identical titles and so never exercised this.)
+  const key = (p: Passenger) =>
+    `${p.givenNames.trim().toUpperCase()}|${p.surname.trim().toUpperCase()}`;
+
+  const keys = named.map(key);
+  const dupes = keys.filter((k, i) => keys.indexOf(k) !== i);
+  for (const d of new Set(dupes)) {
+    const label = d.split("|").filter(Boolean).join(" ");
+    out.push({ segmentId: null, text: `Two passengers have the same name (${label}).` });
+  }
+
+  return out;
 }
 
 export type SegmentDerived = {
