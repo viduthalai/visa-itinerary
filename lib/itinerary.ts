@@ -11,6 +11,17 @@ export type Segment = {
   airlineCode: string;
   /** e.g. `LH411`. */
   flightNumber: string;
+  /** Document detail fields — free text, all optional. */
+  departTerminal: string;
+  arriveTerminal: string;
+  cabinClass: string;
+  fareBasis: string;
+  baggage: string;
+  /**
+   * Left blank by default on purpose. "Confirmed" is a factual claim about a
+   * booking, so the app does not assert it — the user sets it if they want it.
+   */
+  seatStatus: string;
 };
 
 export type Passenger = {
@@ -23,6 +34,8 @@ export type Passenger = {
 export type Itinerary = {
   /** 5 digits, generated once so re-rendering the document keeps the same value. */
   pnr: string;
+  /** 13-digit document number, generated once. Cosmetic — resolves nowhere. */
+  ticketNumber: string;
   /** ISO string, set on the client at mount — see app/page.tsx. */
   generatedAt: string;
   passengers: Passenger[];
@@ -44,6 +57,12 @@ export function emptySegment(): Segment {
     arrive: { date: "", time: "" },
     airlineCode: "",
     flightNumber: "",
+    departTerminal: "",
+    arriveTerminal: "",
+    cabinClass: "Economy",
+    fareBasis: "",
+    baggage: "",
+    seatStatus: "",
   };
 }
 
@@ -66,15 +85,23 @@ export function generatePnr(): string {
   return String(10000 + Math.floor(Math.random() * 90000));
 }
 
+/** 13 digits, rendered `NNN NNNNNNNNNN`. Cosmetic only — resolves nowhere. */
+export function generateTicketNumber(): string {
+  let s = "";
+  for (let i = 0; i < 13; i++) s += Math.floor(Math.random() * 10);
+  return s.replace(/^(\d{3})(\d{10})$/, "$1 $2");
+}
+
 /**
- * Starts with an EMPTY pnr and generatedAt on purpose. Both are non-deterministic
- * (random / clock), so producing them during render makes the server and client
- * HTML disagree and trips a hydration mismatch. The page fills both in a mount
- * effect — see app/page.tsx.
+ * Starts with an EMPTY pnr, ticketNumber and generatedAt on purpose. All three are
+ * non-deterministic (random / clock), so producing them during render makes the
+ * server and client HTML disagree and trips a hydration mismatch. The page fills
+ * them in a mount effect — see app/page.tsx.
  */
 export function newItinerary(): Itinerary {
   return {
     pnr: "",
+    ticketNumber: "",
     generatedAt: "",
     passengers: [emptyPassenger()],
     segments: [emptySegment()],

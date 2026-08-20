@@ -106,6 +106,77 @@ export function FlightDetails({ segment, onChange }: Props) {
         </label>
       </div>
 
+      <details className="mt-3 border-t border-neutral-100 pt-3">
+        <summary className="cursor-pointer text-xs font-medium text-neutral-700">
+          Document details — terminals, cabin, baggage
+        </summary>
+        <div className="mt-3 grid gap-3 sm:grid-cols-3">
+          <label className={labelClass}>
+            Departure terminal
+            <input
+              type="text"
+              className={fieldClass}
+              placeholder="2"
+              value={segment.departTerminal}
+              onChange={(e) => onChange({ departTerminal: e.target.value })}
+            />
+          </label>
+          <label className={labelClass}>
+            Arrival terminal
+            <input
+              type="text"
+              className={fieldClass}
+              placeholder="3"
+              value={segment.arriveTerminal}
+              onChange={(e) => onChange({ arriveTerminal: e.target.value })}
+            />
+          </label>
+          <label className={labelClass}>
+            Cabin
+            <input
+              type="text"
+              className={fieldClass}
+              placeholder="Economy"
+              value={segment.cabinClass}
+              onChange={(e) => onChange({ cabinClass: e.target.value })}
+            />
+          </label>
+          <label className={labelClass}>
+            Fare label
+            <input
+              type="text"
+              className={fieldClass}
+              placeholder="Saver"
+              value={segment.fareBasis}
+              onChange={(e) => onChange({ fareBasis: e.target.value })}
+            />
+          </label>
+          <label className={labelClass}>
+            Baggage
+            <input
+              type="text"
+              className={fieldClass}
+              placeholder="25Kgs"
+              value={segment.baggage}
+              onChange={(e) => onChange({ baggage: e.target.value })}
+            />
+          </label>
+          <label className={labelClass}>
+            Status
+            <input
+              type="text"
+              className={fieldClass}
+              placeholder="leave blank"
+              value={segment.seatStatus}
+              onChange={(e) => onChange({ seatStatus: e.target.value })}
+            />
+            <span className="mt-1 block text-xs font-normal text-neutral-500">
+              Blank by default — the app will not assert a booking status for you.
+            </span>
+          </label>
+        </div>
+      </details>
+
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-neutral-100
                       pt-3 text-xs text-neutral-500">
         <span>

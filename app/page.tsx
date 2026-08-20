@@ -11,6 +11,7 @@ import type { FlightResult, SearchResponse } from "@/lib/flightSearch";
 import {
   emptyPassenger,
   generatePnr,
+  generateTicketNumber,
   newItinerary,
   type Passenger,
   passengerWarnings,
@@ -34,7 +35,14 @@ export default function Page() {
   // trip a hydration mismatch. Generated once, then left alone.
   useEffect(() => {
     setItinerary((it) =>
-      it.pnr ? it : { ...it, pnr: generatePnr(), generatedAt: new Date().toISOString() },
+      it.pnr
+        ? it
+        : {
+            ...it,
+            pnr: generatePnr(),
+            ticketNumber: generateTicketNumber(),
+            generatedAt: new Date().toISOString(),
+          },
     );
   }, []);
 
