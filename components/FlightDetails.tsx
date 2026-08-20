@@ -1,14 +1,13 @@
 "use client";
 
 import { AirportPicker } from "@/components/AirportPicker";
+import { formatAirline } from "@/lib/airlines";
 import { formatDuration, offsetLabel } from "@/lib/duration";
 import { deriveSegment, type Segment } from "@/lib/itinerary";
 
 type Props = {
-  index: number;
   segment: Segment;
   onChange: (patch: Partial<Segment>) => void;
-  onRemove: (() => void) | null;
 };
 
 const fieldClass =
@@ -17,47 +16,23 @@ const fieldClass =
 const labelClass = "block text-xs font-medium text-neutral-600";
 
 /**
- * NOTE — airline is free text for now. There is no maintained free airline
- * dataset: OurAirports covers airports only, and OpenFlights' airlines.dat has
- * no update process and an unconfirmed snapshot date. Rather than bundle stale
- * data or invent a list, this stays a text input until a source is chosen.
+ * The flight itself. Airline and flight number are normally filled by choosing a
+ * search result, but stay editable — the search cannot cover past dates or a
+ * flight the provider does not return.
  */
-export function SegmentRow({ index, segment, onChange, onRemove }: Props) {
+export function FlightDetails({ segment, onChange }: Props) {
   const d = deriveSegment(segment);
-
   const departOffset = d.originTz ? offsetLabel(segment.depart, d.originTz) : null;
   const arriveOffset = d.destinationTz ? offsetLabel(segment.arrive, d.destinationTz) : null;
 
   return (
-    <fieldset className="rounded-lg border border-neutral-200 bg-white p-4">
-      <legend className="flex w-full items-center justify-between px-1">
-        <span className="text-sm font-medium">Flight {index + 1}</span>
-        {onRemove && (
-          <button
-            type="button"
-            onClick={onRemove}
-            className="text-xs text-neutral-500 hover:text-red-600"
-            aria-label={`Remove flight ${index + 1}`}
-          >
-            Remove
-          </button>
-        )}
-      </legend>
+    <div className="rounded-lg border border-neutral-200 bg-white p-4">
+      <h2 className="text-sm font-medium">Flight details</h2>
+      <p className="mt-0.5 text-xs text-neutral-500">
+        Filled by choosing a flight above. Editable if you need to adjust anything.
+      </p>
 
-      <div className="grid gap-3 sm:grid-cols-2">
-        <AirportPicker
-          label="From"
-          value={segment.originIata}
-          onChange={(iata) => onChange({ originIata: iata })}
-          placeholder="JFK"
-        />
-        <AirportPicker
-          label="To"
-          value={segment.destinationIata}
-          onChange={(iata) => onChange({ destinationIata: iata })}
-          placeholder="MUC"
-        />
-
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <div className="grid grid-cols-[1fr_auto] gap-2">
           <label className={labelClass}>
             Departs
@@ -101,14 +76,22 @@ export function SegmentRow({ index, segment, onChange, onRemove }: Props) {
         </div>
 
         <label className={labelClass}>
-          Airline
+          Airline code
           <input
             type="text"
-            className={fieldClass}
-            placeholder="Lufthansa"
-            value={segment.airline}
-            onChange={(e) => onChange({ airline: e.target.value })}
+            maxLength={2}
+            className={`${fieldClass} w-20 font-mono uppercase`}
+            placeholder="LH"
+            value={segment.airlineCode}
+            onChange={(e) => onChange({ airlineCode: e.target.value.toUpperCase() })}
           />
+          <span className="mt-1 block text-xs font-normal text-neutral-500">
+            {segment.airlineCode
+              ? formatAirline(segment.airlineCode) === segment.airlineCode
+                ? "Unknown code — the document will show the code only."
+                : formatAirline(segment.airlineCode)
+              : "\u00a0"}
+          </span>
         </label>
 
         <label className={labelClass}>
@@ -123,8 +106,8 @@ export function SegmentRow({ index, segment, onChange, onRemove }: Props) {
         </label>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-neutral-100 pt-3
-                      text-xs text-neutral-500">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-neutral-100
+                      pt-3 text-xs text-neutral-500">
         <span>
           Duration{" "}
           {d.durationMinutes === null ? (
@@ -149,6 +132,35 @@ export function SegmentRow({ index, segment, onChange, onRemove }: Props) {
 
         {d.nextDay && <span className="font-medium text-neutral-700">arrives next day</span>}
       </div>
-    </fieldset>
+    </div>
+  );
+}
+
+/** Route picker — the search inputs. Kept separate so step 1 reads as one block. */
+export function RouteFields({ segment, onChange }: Props) {
+  return (
+    <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
+      <AirportPicker
+        label="From"
+        value={segment.originIata}
+        onChange={(iata) => onChange({ originIata: iata })}
+        placeholder="JFK"
+      />
+      <AirportPicker
+        label="To"
+        value={segment.destinationIata}
+        onChange={(iata) => onChange({ destinationIata: iata })}
+        placeholder="MUC"
+      />
+      <label className={labelClass}>
+        Departure date
+        <input
+          type="date"
+          className={fieldClass}
+          value={segment.depart.date}
+          onChange={(e) => onChange({ depart: { ...segment.depart, date: e.target.value } })}
+        />
+      </label>
+    </div>
   );
 }

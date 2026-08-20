@@ -1,12 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { airlineName } from "@/lib/airlines";
 import { getAirport } from "@/lib/airports";
 import { formatDuration, offsetLabel, type WallTime } from "@/lib/duration";
 import type { FlightResult, SearchResponse } from "@/lib/flightSearch";
 
 export type PickedFlight = {
-  airline: string;
+  /** IATA carrier code — the name is looked up from it, never carried as text. */
+  airlineCode: string;
   flightNumber: string;
   depart: WallTime;
   arrive: WallTime;
@@ -118,7 +120,7 @@ export function FlightSearch({ originIata, destinationIata, date, onPick }: Prop
         : null;
 
     onPick({
-      airline: r.airlineCode,
+      airlineCode: r.airlineCode,
       flightNumber: `${r.airlineCode}${r.flightNumber}`,
       depart,
       // No duration from the provider means we cannot compute an arrival. Leave it
@@ -176,9 +178,12 @@ export function FlightSearch({ originIata, destinationIata, date, onPick }: Prop
                     className="flex w-full items-baseline gap-3 py-2 text-left text-sm
                                hover:bg-neutral-50"
                   >
-                    <span className="w-16 font-mono text-xs font-semibold">
+                    <span className="w-14 font-mono text-xs font-semibold">
                       {r.airlineCode}
                       {r.flightNumber}
+                    </span>
+                    <span className="w-36 truncate text-xs text-neutral-700">
+                      {airlineName(r.airlineCode) ?? r.airlineCode}
                     </span>
                     <span className="font-mono text-xs">{depart?.time ?? "—"}</span>
                     {dOff && <span className="text-xs text-neutral-400">{dOff}</span>}

@@ -9,7 +9,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "data:airports": "node scripts/build-airports.mjs",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "data:airlines": "node scripts/build-airlines.mjs"
   },
   "dependencies": {
     "date-fns": "4.4.0",

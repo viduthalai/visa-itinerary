@@ -7,8 +7,9 @@ export type Segment = {
   destinationIata: string | null;
   depart: WallTime;
   arrive: WallTime;
-  /** Free text for now — see NOTE in components/SegmentRow.tsx. */
-  airline: string;
+  /** IATA carrier code, e.g. `LH`. The display name is looked up from it. */
+  airlineCode: string;
+  /** e.g. `LH411`. */
   flightNumber: string;
 };
 
@@ -41,7 +42,7 @@ export function emptySegment(): Segment {
     destinationIata: null,
     depart: { date: "", time: "" },
     arrive: { date: "", time: "" },
-    airline: "",
+    airlineCode: "",
     flightNumber: "",
   };
 }
