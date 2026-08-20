@@ -12,9 +12,19 @@ export type Segment = {
   flightNumber: string;
 };
 
+export type Passenger = {
+  id: string;
+  title: string;
+  givenNames: string;
+  surname: string;
+};
+
 export type Itinerary = {
   /** 5 digits, generated once so re-rendering the document keeps the same value. */
   pnr: string;
+  /** ISO string, set on the client at mount — see app/page.tsx. */
+  generatedAt: string;
+  passengers: Passenger[];
   segments: Segment[];
 };
 
@@ -36,19 +46,33 @@ export function emptySegment(): Segment {
   };
 }
 
+export function emptyPassenger(): Passenger {
+  seq += 1;
+  return { id: `pax-${seq}`, title: "", givenNames: "", surname: "" };
+}
+
+/** `MR JOHN SMITH` — surname last, uppercase, the way travel documents print it. */
+export function formatPassenger(p: Passenger): string {
+  return [p.title, p.givenNames, p.surname]
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .join(" ")
+    .toUpperCase();
+}
+
 /** 5 numeric digits, 10000-99999. No leading zero. */
 export function generatePnr(): string {
   return String(10000 + Math.floor(Math.random() * 90000));
 }
 
 /**
- * Starts with an EMPTY pnr on purpose. `generatePnr` is random, so calling it
- * during render would produce a different value on the server than on the
- * client and trip a hydration mismatch. The page fills it in a mount effect —
- * see app/page.tsx.
+ * Starts with an EMPTY pnr and generatedAt on purpose. Both are non-deterministic
+ * (random / clock), so producing them during render makes the server and client
+ * HTML disagree and trips a hydration mismatch. The page fills both in a mount
+ * effect — see app/page.tsx.
  */
 export function newItinerary(): Itinerary {
-  return { pnr: "", segments: [emptySegment()] };
+  return { pnr: "", generatedAt: "", passengers: [], segments: [emptySegment()] };
 }
 
 export type SegmentDerived = {

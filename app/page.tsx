@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { FlightSearch, type PickedFlight } from "@/components/FlightSearch";
 import { SegmentRow } from "@/components/SegmentRow";
 import { AIRPORTS } from "@/lib/airports";
 import {
@@ -14,14 +15,29 @@ import {
 export default function Page() {
   const [itinerary, setItinerary] = useState(newItinerary);
 
-  // The PNR is random, so it must be generated on the client only — generating
-  // it during render makes the server and client HTML disagree. Generated once
-  // and then left alone, so re-rendering never changes it.
+  // PNR and generatedAt are non-deterministic, so they must be produced on the
+  // client only — doing it during render makes the server and client HTML
+  // disagree. Generated once, then left alone.
   useEffect(() => {
-    setItinerary((it) => (it.pnr ? it : { ...it, pnr: generatePnr() }));
+    setItinerary((it) =>
+      it.pnr
+        ? it
+        : { ...it, pnr: generatePnr(), generatedAt: new Date().toISOString() },
+    );
   }, []);
 
   const warnings = useMemo(() => warningsFor(itinerary.segments), [itinerary.segments]);
+  const first = itinerary.segments[0];
+
+  function applyPicked(f: PickedFlight) {
+    // Fills flight 1 — the search is scoped to its route and date.
+    patchSegment(first.id, {
+      airline: f.airline,
+      flightNumber: f.flightNumber,
+      depart: f.depart,
+      arrive: f.arrive,
+    });
+  }
 
   function patchSegment(id: string, patch: Partial<Segment>) {
     setItinerary((it) => ({
@@ -56,7 +72,16 @@ export default function Page() {
         {AIRPORTS.length.toLocaleString()} airports bundled, no network calls.
       </p>
 
-      <div className="mt-6 space-y-4">
+      <div className="mt-6">
+        <FlightSearch
+          originIata={first.originIata}
+          destinationIata={first.destinationIata}
+          date={first.depart.date}
+          onPick={applyPicked}
+        />
+      </div>
+
+      <div className="mt-4 space-y-4">
         {itinerary.segments.map((s, i) => (
           <SegmentRow
             key={s.id}
