@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+/* Tailwind v4 is CSS-first: theme tokens live here, not in a JS config. */
+@theme {
+  --font-sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-doc: "Helvetica Neue", Helvetica, Arial, sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+}
