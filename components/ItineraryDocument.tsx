@@ -2,7 +2,8 @@
 
 import { airlineName } from "@/lib/airlines";
 import { getAirport } from "@/lib/airports";
-import { DOCUMENT_TITLE, SPECIMEN_MARKING, TOOL_NAME } from "@/lib/config";
+import { SPECIMEN_MARKING, TOOL_NAME } from "@/lib/config";
+import { VOICE } from "@/lib/documentVoice";
 import { formatDuration, offsetLabel } from "@/lib/duration";
 import { countryName } from "@/lib/countries";
 import { formatCompactDate, formatDocDate } from "@/lib/formatDate";
@@ -107,7 +108,7 @@ export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
             className="mt-4 flex-1 whitespace-nowrap text-center font-[family-name:var(--font-doc-serif)]
                        text-[25px] font-normal leading-none text-doc-accent"
           >
-            {DOCUMENT_TITLE}
+            {VOICE.title}
           </h1>
 
           <div className="w-[230px] pt-1 text-center">
@@ -115,8 +116,7 @@ export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
               Document number: {itinerary.ticketNumber || "—"}
             </div>
             <div className="mt-1 text-[7.5px] leading-tight text-doc-mute">
-              Quote this number in any correspondence about this itinerary. It is an internal
-              reference, not an airline ticket number.
+              {VOICE.documentNumberCaption}
             </div>
           </div>
         </header>
@@ -134,7 +134,7 @@ export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
               ))
             )}
           </Field>
-          <Field label="Prepared by / date">
+          <Field label={VOICE.issuedByLabel}>
             <div>{TOOL_NAME}</div>
             <div>{issued ? formatDocDate(issued, false).toUpperCase() : "—"}</div>
           </Field>
@@ -153,15 +153,8 @@ export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
           style={{ borderBottom: "1px dotted #c9c9c7" }}
         >
           <div className="space-y-2">
-            <p>
-              This document sets out the intended journey listed below. It is a travel plan
-              prepared for your own records and for any application that asks for one — it
-              is not a reservation and confers no entitlement to travel.
-            </p>
-            <p>
-              You may be asked to show a travel plan at the airport or when applying for a
-              visa. Keep it with your travel documents.
-            </p>
+            <p>{VOICE.noticeLeft[0]}</p>
+            <p>{VOICE.noticeLeft[1]}</p>
           </div>
           <div className="space-y-2">
             <p>
@@ -464,8 +457,13 @@ export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
         <footer className="mt-5 flex items-baseline justify-between border-t border-doc-panel-edge pt-2 text-[8.5px] text-doc-mute">
           <span>
             {TOOL_NAME}
-            {issued && <> · prepared {formatDocDate(issued, false)}</>} · travel plan, not a
-            reservation
+            {issued && (
+              <>
+                {" "}
+                · {VOICE.datedVerb} {formatDocDate(issued, false)}
+              </>
+            )}
+            {VOICE.footerDescriptor && <> · {VOICE.footerDescriptor}</>}
           </span>
           {/*
             No "Page 1 of 1" here. It was hard-coded and the generated PDF runs to
