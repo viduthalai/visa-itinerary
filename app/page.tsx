@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlightDetails, RouteFields } from "@/components/FlightDetails";
 import { FlightResults } from "@/components/FlightResults";
+import { ItineraryDocument } from "@/components/ItineraryDocument";
 import { PassengerFields } from "@/components/PassengerFields";
 import { getAirport } from "@/lib/airports";
 import { toPickedFlight } from "@/lib/flightPick";
@@ -196,6 +197,26 @@ export default function Page() {
                 }))
               }
             />
+          </Step>
+        )}
+
+        {flightChosen && (
+          <Step n={5} title="Document">
+            <div className="rounded-lg border border-neutral-200 bg-neutral-100 p-3">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-xs text-neutral-600">Live preview</span>
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="rounded-md bg-neutral-900 px-3.5 py-2 text-xs text-white"
+                >
+                  Print / Save as PDF
+                </button>
+              </div>
+              <div className="overflow-hidden rounded-md shadow-sm">
+                <ItineraryDocument itinerary={itinerary} />
+              </div>
+            </div>
           </Step>
         )}
 

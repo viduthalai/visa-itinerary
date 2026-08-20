@@ -10,3 +10,36 @@ html,
 body {
   height: 100%;
 }
+
+/*
+ * Printing produces the PDF — there is no separate PDF template, so the preview
+ * and the download can never diverge. Everything outside the document is hidden
+ * rather than restyled.
+ */
+@media print {
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+
+  body {
+    background: #fff;
+  }
+
+  /* Hide every sibling on the path from <body> down to the document. */
+  body :not(:has(#itinerary-document)):not(#itinerary-document *):not(#itinerary-document) {
+    display: none !important;
+  }
+
+  #itinerary-document {
+    position: static !important;
+    max-width: none !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* Keep the flight block from splitting across pages. */
+  #itinerary-document section {
+    break-inside: avoid;
+  }
+}
