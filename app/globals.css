@@ -96,6 +96,38 @@ body {
 }
 
 /*
+ * Split personality: the hero and header are dark (cinematic, atmospheric),
+ * but the working form area is light (readable, professional, no eye strain
+ * during extended use). The boundary is the <main> element.
+ *
+ * This works by overriding the semantic tokens INSIDE main, so every component
+ * that uses `bg-surface`, `text-ink`, `border-line` etc. automatically resolves
+ * to its light value without any class changes. The dark hero sits OUTSIDE main
+ * and keeps the original dark tokens.
+ */
+main {
+  --color-canvas: #f8fafc;
+  --color-surface: #ffffff;
+  --color-elevated: #f8fafc;
+  --color-ink: #0f172a;
+  --color-ink-soft: #475569;
+  --color-ink-mute: #64748b;
+  --color-muted: #f1f5f9;
+  --color-line: #e2e8f0;
+  --color-primary: #1e3a5f;
+  --color-primary-hover: #16304f;
+  --color-accent: #e14b3f;
+  --color-accent-hover: #c93a30;
+  --color-secondary: #2563eb;
+  --color-destructive: #dc2626;
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.04);
+  --shadow-lift: 0 4px 12px rgba(15, 23, 42, 0.08), 0 12px 32px rgba(15, 23, 42, 0.06);
+  --shadow-paper: 0 8px 32px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+/*
  * One focus style for the whole app. Defined once here rather than per component
  * because the checklist item is "focus states visible for keyboard nav", and a
  * per-component style is a per-component chance to forget it. `:focus-visible`

@@ -16,7 +16,9 @@ export function SiteFooter() {
   const year = 2026; // Fixed, not new Date(): a clock read during render is a hydration mismatch.
 
   return (
-    <footer className="mt-24 border-t border-line bg-surface/60">
+    <footer className="mt-0 border-t border-[#e2e8f0] bg-[#f8fafc] text-[#0f172a]
+               [--color-ink:#0f172a] [--color-ink-soft:#475569] [--color-ink-mute:#64748b]
+               [--color-line:#e2e8f0] [--color-secondary:#2563eb]">
       <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6">
         <div className="grid gap-8 sm:grid-cols-3">
           <div>
