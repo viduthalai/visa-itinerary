@@ -11,15 +11,18 @@ import { getAirport } from "@/lib/airports";
 import { toPickedFlight } from "@/lib/flightPick";
 import type { FlightResult, SearchResponse } from "@/lib/flightSearch";
 import {
+  allLegsChosen,
   emptyPassenger,
   generatePnr,
   generateTicketNumber,
   newItinerary,
   type Fare,
+  type Itinerary,
   type Passenger,
   passengerWarnings,
   type Segment,
   warningsFor,
+  withReturnLeg,
 } from "@/lib/itinerary";
 
 type SearchState =
@@ -39,7 +42,10 @@ const STEPS: StepDef[] = [
 /** One flight, one step at a time: route -> results -> confirm -> passengers -> document. */
 export default function Page() {
   const [itinerary, setItinerary] = useState(newItinerary);
-  const [search, setSearch] = useState<SearchState>({ status: "idle" });
+  // One search state PER LEG. A round trip searches two different routes on two
+  // different dates, so a single shared state would let the return results
+  // overwrite the outbound ones.
+  const [searches, setSearches] = useState<SearchState[]>([{ status: "idle" }]);
   const [step, setStep] = useState(1);
 
   // PNR and generatedAt are non-deterministic, so they are produced on the client
@@ -61,36 +67,42 @@ export default function Page() {
   const segment = itinerary.segments[0];
   const origin = getAirport(segment.originIata);
   const destination = getAirport(segment.destinationIata);
+  const legs = itinerary.segments;
+  const returnDate = legs[1]?.depart.date ?? "";
 
   const canSearch =
     Boolean(origin && destination) &&
     origin?.iata !== destination?.iata &&
     /^\d{4}-\d{2}-\d{2}$/.test(segment.depart.date);
 
-  // A flight has been chosen once the carrier and a departure time are set —
-  // whether that came from the results list or from manual entry.
-  const flightChosen = Boolean(segment.airlineCode && segment.depart.time);
+  // Every leg needs a flight — whether it came from the results list or from
+  // manual entry. A round trip with only the outbound chosen is not ready.
+  const flightChosen = allLegsChosen(legs);
 
   const warnings = useMemo(
     () => [
-      ...warningsFor([segment]),
+      ...warningsFor(legs),
       ...(flightChosen ? passengerWarnings(itinerary.passengers) : []),
     ],
-    [segment, itinerary.passengers, flightChosen],
+    [legs, itinerary.passengers, flightChosen],
   );
 
-  function patch(p: Partial<Segment>) {
-    setItinerary((it) => ({ ...it, segments: [{ ...it.segments[0], ...p }] }));
+  function patchLeg(i: number, p: Partial<Segment>) {
+    setItinerary((it) => ({
+      ...it,
+      segments: it.segments.map((s, idx) => (idx === i ? { ...s, ...p } : s)),
+    }));
   }
 
   /**
-   * Changing the route or date invalidates both the results AND any flight already
-   * chosen — otherwise steps 3 and 4 keep showing LH411 to MUC after the route has
-   * been changed to LHR, and the document would assert a flight that contradicts
-   * its own route.
+   * Changing the outbound route or date invalidates the results, the chosen
+   * outbound flight, AND the return leg — the return route is the outbound route
+   * reversed, so moving the destination moves where the return starts. Without
+   * this the document would assert a flight that contradicts its own route, which
+   * already happened once when only the search results were reset.
    */
   function patchRoute(p: Partial<Segment>) {
-    setSearch({ status: "idle" });
+    setSearches((prev) => prev.map(() => ({ status: "idle" }) as SearchState));
     setStep(1);
     setItinerary((it) => {
       const current = it.segments[0];
@@ -100,51 +112,88 @@ export default function Page() {
         next.destinationIata !== current.destinationIata ||
         next.depart.date !== current.depart.date;
 
-      if (!routeChanged) return { ...it, segments: [next] };
-
-      return {
-        ...it,
-        segments: [
-          {
+      const outbound = routeChanged
+        ? {
             ...next,
             airlineCode: "",
             flightNumber: "",
             depart: { date: next.depart.date, time: "" },
             arrive: { date: "", time: "" },
-          },
-        ],
-      };
+          }
+        : next;
+
+      // Re-derive the return leg from the (possibly new) outbound route.
+      const withOutbound: Itinerary = { ...it, segments: [outbound, ...it.segments.slice(1)] };
+      return withReturnLeg(withOutbound, it.segments[1]?.depart.date ?? "");
     });
   }
 
-  const runSearch = useCallback(async () => {
-    if (!origin || !destination) return;
-    setSearch({ status: "loading" });
-    try {
-      const res = await fetch(
-        `/api/flights?origin=${origin.iata}&destination=${destination.iata}&date=${segment.depart.date}`,
-      );
-      const body = await res.json();
-      if (!res.ok) {
-        setSearch({ status: "error", message: body.error ?? `HTTP ${res.status}` });
-        return;
-      }
-      setSearch({ status: "done", data: body as SearchResponse });
-      setStep(2);
-    } catch (err) {
-      setSearch({
-        status: "error",
-        message: err instanceof Error ? err.message : "Request failed",
-      });
-    }
-  }, [origin, destination, segment.depart.date]);
+  /** Adding, moving or clearing the return date. */
+  function setReturnDate(date: string) {
+    setSearches((prev) => {
+      const next = [prev[0] ?? { status: "idle" }];
+      if (date) next.push({ status: "idle" });
+      return next as SearchState[];
+    });
+    setStep(1);
+    setItinerary((it) => withReturnLeg(it, date));
+  }
 
-  function pick(r: FlightResult) {
-    if (!origin || !destination) return;
-    const picked = toPickedFlight(r, origin.tz, destination.tz);
+  const runSearch = useCallback(async () => {
+    const targets = itinerary.segments
+      .map((s, i) => ({ i, s, o: getAirport(s.originIata), d: getAirport(s.destinationIata) }))
+      .filter((t) => t.o && t.d && /^\d{4}-\d{2}-\d{2}$/.test(t.s.depart.date));
+
+    if (targets.length === 0) return;
+    setSearches(itinerary.segments.map(() => ({ status: "loading" }) as SearchState));
+
+    /*
+     * Both legs are fetched in parallel and settled INDEPENDENTLY. A failed return
+     * search must not discard usable outbound results — the user can still pick the
+     * outbound and enter the return by hand.
+     */
+    const settled = await Promise.all(
+      targets.map(async (t): Promise<[number, SearchState]> => {
+        try {
+          const res = await fetch(
+            `/api/flights?origin=${t.o!.iata}&destination=${t.d!.iata}&date=${t.s.depart.date}`,
+          );
+          const body = await res.json();
+          if (!res.ok) {
+            return [t.i, { status: "error", message: body.error ?? `HTTP ${res.status}` }];
+          }
+          return [t.i, { status: "done", data: body as SearchResponse }];
+        } catch (err) {
+          return [
+            t.i,
+            { status: "error", message: err instanceof Error ? err.message : "Request failed" },
+          ];
+        }
+      }),
+    );
+
+    setSearches((prev) => {
+      const next = itinerary.segments.map((_, i) => prev[i] ?? { status: "idle" });
+      for (const [i, state] of settled) next[i] = state;
+      return next as SearchState[];
+    });
+    if (settled.some(([, st]) => st.status === "done")) setStep(2);
+  }, [itinerary.segments]);
+
+  function pick(legIndex: number, r: FlightResult) {
+    const leg = itinerary.segments[legIndex];
+    const o = getAirport(leg?.originIata ?? null);
+    const d = getAirport(leg?.destinationIata ?? null);
+    if (!o || !d) return;
+    const picked = toPickedFlight(r, o.tz, d.tz);
     if (!picked) return;
-    patch(picked);
-    setStep(3);
+    patchLeg(legIndex, picked);
+    // Only advance once every leg has a flight — otherwise picking the outbound
+    // would skip the user past the return list they still have to choose from.
+    const remaining = itinerary.segments.some(
+      (s, i) => i !== legIndex && !(s.airlineCode && s.depart.time),
+    );
+    if (!remaining) setStep(3);
   }
 
   function patchFare(p: Partial<Fare>) {
@@ -167,11 +216,13 @@ export default function Page() {
    * reachability from the itinerary rather than from a "furthest visited" counter
    * means the wizard can never sit on a step whose inputs no longer exist.
    */
-  const reachable = flightChosen ? STEPS.length : search.status === "done" ? 2 : 1;
+  const anyResults = searches.some((s) => s.status === "done");
+  const searching = searches.some((s) => s.status === "loading");
+  const reachable = flightChosen ? STEPS.length : anyResults ? 2 : 1;
 
   useEffect(() => {
-    setStep((s) => Math.min(s, flightChosen ? STEPS.length : search.status === "done" ? 2 : 1));
-  }, [flightChosen, search.status]);
+    setStep((s) => Math.min(s, reachable));
+  }, [reachable]);
 
   const canContinue = step < STEPS.length && step < reachable;
 
@@ -193,16 +244,21 @@ export default function Page() {
 
         {step === 1 && (
           <div className="rounded-lg border border-neutral-200 bg-white p-4">
-            <RouteFields segment={segment} onChange={patchRoute} />
+            <RouteFields
+              segment={segment}
+              onChange={patchRoute}
+              returnDate={returnDate}
+              onReturnDateChange={setReturnDate}
+            />
             <div className="mt-3 flex flex-wrap items-center gap-3">
               <button
                 type="button"
                 onClick={runSearch}
-                disabled={!canSearch || search.status === "loading"}
+                disabled={!canSearch || searching}
                 className="rounded-md bg-neutral-900 px-3.5 py-2 text-xs text-white
                            disabled:cursor-not-allowed disabled:bg-neutral-300"
               >
-                {search.status === "loading" ? "Searching…" : "Search flights"}
+                {searching ? "Searching…" : returnDate ? "Search both flights" : "Search flights"}
               </button>
               {/*
                 The manual path has to stay reachable: search cannot return past
@@ -224,24 +280,66 @@ export default function Page() {
                 Pick two different airports and a departure date.
               </p>
             )}
-            {search.status === "error" && (
-              <p className="mt-2 rounded-md bg-red-50 px-2.5 py-2 text-xs text-red-700">
-                {search.message}
-              </p>
+            {searches.map((st, i) =>
+              st.status === "error" ? (
+                <p
+                  key={`err-${i}`}
+                  className="mt-2 rounded-md bg-red-50 px-2.5 py-2 text-xs text-red-700"
+                >
+                  {legLabel(itinerary.segments, i)}: {st.message}
+                </p>
+              ) : null,
             )}
           </div>
         )}
 
-        {step === 2 && search.status === "done" && origin && (
-          <FlightResults
-            data={search.data}
-            origin={origin}
-            selectedFlightNumber={segment.flightNumber}
-            onPick={pick}
-          />
+        {step === 2 && (
+          <div className="grid gap-4">
+            {itinerary.segments.map((leg, i) => {
+              const st = searches[i];
+              const legOrigin = getAirport(leg.originIata);
+              if (!st || st.status !== "done" || !legOrigin) {
+                return (
+                  <p key={leg.id} className="text-sm text-neutral-500">
+                    {legLabel(itinerary.segments, i)}: no results —{" "}
+                    {st?.status === "error"
+                      ? "search failed, enter this leg by hand on the next step."
+                      : "not searched."}
+                  </p>
+                );
+              }
+              return (
+                <FlightResults
+                  key={leg.id}
+                  heading={
+                    itinerary.segments.length > 1 ? legLabel(itinerary.segments, i) : undefined
+                  }
+                  data={st.data}
+                  origin={legOrigin}
+                  selectedFlightNumber={leg.flightNumber}
+                  onPick={(r) => pick(i, r)}
+                />
+              );
+            })}
+          </div>
         )}
 
-        {step === 3 && <FlightDetails segment={segment} onChange={patch} />}
+        {step === 3 && (
+          <div className="grid gap-4">
+            {itinerary.segments.map((leg, i) => (
+              <FlightDetails
+                key={leg.id}
+                segment={leg}
+                heading={
+                  itinerary.segments.length > 1
+                    ? legLabel(itinerary.segments, i)
+                    : "Flight details"
+                }
+                onChange={(pp) => patchLeg(i, pp)}
+              />
+            ))}
+          </div>
+        )}
 
         {step === 4 && (
           <PassengerFields
@@ -327,4 +425,15 @@ export default function Page() {
       )}
     </main>
   );
+}
+
+/**
+ * "Outbound — BLR to DXB". Used for search headings, per-leg detail headings and
+ * error messages, so one leg can never be described two different ways.
+ */
+function legLabel(segments: Segment[], i: number): string {
+  const s = segments[i];
+  const route = s?.originIata && s?.destinationIata ? `${s.originIata} to ${s.destinationIata}` : "route not set";
+  if (segments.length < 2) return route;
+  return `${i === 0 ? "Outbound" : "Return"} — ${route}`;
 }

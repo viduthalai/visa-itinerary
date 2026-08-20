@@ -20,16 +20,20 @@ const labelClass = "block text-xs font-medium text-neutral-600";
  * search result, but stay editable — the search cannot cover past dates or a
  * flight the provider does not return.
  */
-export function FlightDetails({ segment, onChange }: Props) {
+export function FlightDetails({
+  segment,
+  onChange,
+  heading = "Flight details",
+}: Props & { heading?: string }) {
   const d = deriveSegment(segment);
   const departOffset = d.originTz ? offsetLabel(segment.depart, d.originTz) : null;
   const arriveOffset = d.destinationTz ? offsetLabel(segment.arrive, d.destinationTz) : null;
 
   return (
     <div className="rounded-lg border border-neutral-200 bg-white p-4">
-      <h2 className="text-sm font-medium">Flight details</h2>
+      <h3 className="text-sm font-medium">{heading}</h3>
       <p className="mt-0.5 text-xs text-neutral-500">
-        Filled by choosing a flight above. Editable if you need to adjust anything.
+        Filled by choosing a flight. Editable if you need to adjust anything.
       </p>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
@@ -207,31 +211,81 @@ export function FlightDetails({ segment, onChange }: Props) {
   );
 }
 
-/** Route picker — the search inputs. Kept separate so step 1 reads as one block. */
-export function RouteFields({ segment, onChange }: Props) {
+/**
+ * Route picker — the search inputs. Kept separate so step 1 reads as one block.
+ *
+ * The return date is on THIS step rather than a step of its own, and it is
+ * optional: leaving it blank produces a one-way document. The return route is
+ * never entered — it is the outbound route reversed, derived in
+ * `withReturnLeg()`, so the two can never disagree.
+ */
+export function RouteFields({
+  segment,
+  onChange,
+  returnDate,
+  onReturnDateChange,
+}: Props & { returnDate: string; onReturnDateChange: (d: string) => void }) {
+  const reverseLabel =
+    segment.destinationIata && segment.originIata
+      ? `${segment.destinationIata} → ${segment.originIata}`
+      : null;
+
   return (
-    <div className="grid gap-3 sm:grid-cols-[1fr_1fr_auto]">
-      <AirportPicker
-        label="From"
-        value={segment.originIata}
-        onChange={(iata) => onChange({ originIata: iata })}
-        placeholder="JFK"
-      />
-      <AirportPicker
-        label="To"
-        value={segment.destinationIata}
-        onChange={(iata) => onChange({ destinationIata: iata })}
-        placeholder="MUC"
-      />
-      <label className={labelClass}>
-        Departure date
-        <input
-          type="date"
-          className={fieldClass}
-          value={segment.depart.date}
-          onChange={(e) => onChange({ depart: { ...segment.depart, date: e.target.value } })}
+    <div className="grid gap-3">
+      {/* Row 1 — where. Row 2 — when. */}
+      <div className="grid gap-3 sm:grid-cols-2">
+        <AirportPicker
+          label="From"
+          value={segment.originIata}
+          onChange={(iata) => onChange({ originIata: iata })}
+          placeholder="JFK"
         />
-      </label>
+        <AirportPicker
+          label="To"
+          value={segment.destinationIata}
+          onChange={(iata) => onChange({ destinationIata: iata })}
+          placeholder="MUC"
+        />
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <label className={labelClass}>
+          Departure date
+          <input
+            type="date"
+            className={fieldClass}
+            value={segment.depart.date}
+            onChange={(e) => onChange({ depart: { ...segment.depart, date: e.target.value } })}
+          />
+        </label>
+        <label className={labelClass}>
+          Return date <span className="font-normal text-neutral-400">— optional</span>
+          <input
+            type="date"
+            className={fieldClass}
+            value={returnDate}
+            min={segment.depart.date || undefined}
+            onChange={(e) => onReturnDateChange(e.target.value)}
+          />
+        </label>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3">
+        <p className="text-xs text-neutral-500">
+          {returnDate
+            ? `Round trip${reverseLabel ? ` — return leg ${reverseLabel}` : ""}.`
+            : "Leave the return date blank for a one-way itinerary."}
+        </p>
+        {returnDate && (
+          <button
+            type="button"
+            onClick={() => onReturnDateChange("")}
+            className="text-xs text-neutral-600 underline underline-offset-2"
+          >
+            Make it one-way
+          </button>
+        )}
+      </div>
     </div>
   );
 }

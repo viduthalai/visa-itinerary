@@ -110,6 +110,66 @@ function nextId(prefix: string): string {
 /** The initial segment/passenger use FIXED ids — identical on server and client. */
 const INITIAL_SEGMENT_ID = "seg-initial";
 const INITIAL_PASSENGER_ID = "pax-initial";
+const RETURN_SEGMENT_ID = "seg-return";
+
+/**
+ * Add, update or drop the return leg.
+ *
+ * The return leg is DERIVED from the outbound one — its route is the outbound
+ * route reversed, and it is never entered independently. That is why this lives
+ * here rather than in the page: the invalidation rule is the whole point.
+ *
+ * Rules:
+ *   - Empty `returnDate` removes the leg entirely (one-way).
+ *   - If the outbound route or the return date changed, the return leg's CHOSEN
+ *     FLIGHT is discarded — carrier, flight number and both times. Keeping them
+ *     would print a Dubai→Bengaluru flight number on a leg that now reads
+ *     Dubai→London, which is the exact class of contradiction that already
+ *     appeared once when only the search results were reset.
+ *   - Otherwise the existing leg is kept untouched, so editing a terminal does
+ *     not wipe the flight the user just picked.
+ */
+export function withReturnLeg(it: Itinerary, returnDate: string): Itinerary {
+  const outbound = it.segments[0];
+
+  if (!returnDate) {
+    return it.segments.length === 1 ? it : { ...it, segments: [outbound] };
+  }
+
+  const wantOrigin = outbound.destinationIata;
+  const wantDestination = outbound.originIata;
+  const existing = it.segments[1];
+
+  const stillValid =
+    existing &&
+    existing.originIata === wantOrigin &&
+    existing.destinationIata === wantDestination &&
+    existing.depart.date === returnDate;
+
+  if (stillValid) return it;
+
+  const base = existing ?? emptySegment(RETURN_SEGMENT_ID);
+  return {
+    ...it,
+    segments: [
+      outbound,
+      {
+        ...base,
+        originIata: wantOrigin,
+        destinationIata: wantDestination,
+        depart: { date: returnDate, time: "" },
+        arrive: { date: "", time: "" },
+        airlineCode: "",
+        flightNumber: "",
+      },
+    ],
+  };
+}
+
+/** True once every leg has a carrier and a departure time. */
+export function allLegsChosen(segments: Segment[]): boolean {
+  return segments.length > 0 && segments.every((s) => s.airlineCode && s.depart.time);
+}
 
 export function emptySegment(id: string = nextId("seg")): Segment {
   return {

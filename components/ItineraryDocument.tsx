@@ -12,6 +12,7 @@ import {
   formatPassenger,
   hasFare,
   type Itinerary,
+  type Segment,
 } from "@/lib/itinerary";
 
 /**
@@ -43,23 +44,10 @@ import {
  * real selectable text rather than an image. That bug has appeared twice.
  */
 export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
-  const segment = itinerary.segments[0];
-  const origin = getAirport(segment.originIata);
-  const destination = getAirport(segment.destinationIata);
-  const derived = deriveSegment(segment);
-
+  // The document renders every leg. Per-leg values live in <LegBlock>.
+  const segments = itinerary.segments;
   const named = itinerary.passengers.filter((p) => p.surname.trim() || p.givenNames.trim());
-  const carrier = airlineName(segment.airlineCode);
   const issued = itinerary.generatedAt ? itinerary.generatedAt.slice(0, 10) : "";
-  const departDate = segment.depart.date ? formatDocDate(segment.depart.date, false) : "—";
-  const arriveDate = segment.arrive.date ? formatDocDate(segment.arrive.date, false) : "—";
-
-  /*
-   * Coupon validity window. In the reference both bounds are the DEPARTURE date on
-   * every leg — including a leg that lands the next day — so the window is not
-   * derived from the arrival. Matching that rather than inventing a range.
-   */
-  const couponNotAfter = segment.depart.date;
   const fareShown = hasFare(itinerary.fare);
 
   return (
@@ -198,11 +186,16 @@ export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
           </div>
         </section>
 
-        {/* Travel information panel */}
-        <section
-          data-keep-together
-          className="mt-6 border border-doc-panel-edge bg-doc-panel p-4"
-        >
+        {/*
+          Travel information panel.
+
+          NOT data-keep-together. The rule is that a LEG must not split — an
+          arrival separated from its departure by a page break is unreadable — and
+          that rule belongs on each leg, not on the panel. Applying it to the panel
+          made a two-leg panel unbreakable, so it jumped whole to page 2 and left a
+          third of page 1 blank.
+        */}
+        <section className="mt-6 border border-doc-panel-edge bg-doc-panel p-4">
           <div className="flex items-end justify-between">
             <h2 className="font-[family-name:var(--font-doc-serif)] text-[17px] leading-none text-doc-grey">
               Your travel information
@@ -212,172 +205,9 @@ export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
             </span>
           </div>
 
-          {/* Departing band */}
-          <div className="mt-3 flex items-center gap-2 bg-doc-band px-3 py-1.5 text-white">
-            <span aria-hidden className="text-[12px] leading-none">
-              ➜
-            </span>
-            <span className="text-[12px]">
-              Departing » From{" "}
-              <strong className="font-bold">
-                {origin?.city ?? origin?.name ?? "—"}
-                {origin?.country ? `, ${countryName(origin.country)}` : ""}
-              </strong>
-            </span>
-          </div>
-
-          {/* Leg strip */}
-          <div className="bg-doc-leg px-3 py-1 text-[8.5px] text-doc-ink">
-            <strong className="font-bold">Leg 1 of 1</strong>
-            <span className="mx-1.5">|</span>
-            {origin?.city ?? "—"} ({origin?.iata ?? "—"}) to {destination?.city ?? "—"} (
-            {destination?.iata ?? "—"})
-            {carrier && (
-              <>
-                <span className="mx-1.5">|</span>
-                Operated by {carrier}
-              </>
-            )}
-          </div>
-
-          {/* Leg body */}
-          <div className="bg-white px-3 pb-3 pt-3">
-            {/* Departure row */}
-            <div className="grid grid-cols-[86px_92px_92px_1fr] items-start gap-2">
-              <div>
-                <Caption>Flight</Caption>
-                <div className="text-[16px] font-bold leading-tight text-doc-grey">
-                  {segment.flightNumber || segment.airlineCode || "—"}
-                </div>
-                {segment.cabinClass && (
-                  <div className="text-[8.5px] font-bold text-doc-ink">
-                    {segment.cabinClass}
-                  </div>
-                )}
-                {segment.fareBasis && (
-                  <div className="text-[8.5px] font-bold text-doc-ink">
-                    {segment.fareBasis}
-                  </div>
-                )}
-              </div>
-              <div>
-                <Caption>Check-in at</Caption>
-                <div className="text-[8.5px]">
-                  {derived.checkIn ? formatDocDate(derived.checkIn.date, false) : "—"}
-                </div>
-                <div className="text-[17px] font-bold leading-tight text-doc-grey">
-                  {derived.checkIn?.time ?? "—:—"}
-                </div>
-              </div>
-              <div>
-                <Caption>Departure</Caption>
-                <div className="text-[8.5px]">{departDate}</div>
-                <div className="text-[17px] font-bold leading-tight text-doc-grey">
-                  {segment.depart.time || "—:—"}
-                </div>
-                {derived.originTz && segment.depart.time && (
-                  <div className="text-[8px] text-doc-mute">
-                    {offsetLabel(segment.depart, derived.originTz)}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-start gap-3">
-                <RouteGlyph />
-                <div>
-                  <div className="text-[19px] font-bold uppercase leading-none text-doc-grey">
-                    {origin?.city ?? "—"}
-                  </div>
-                  <div className="mt-1 text-[8.5px] font-bold text-doc-ink">
-                    Departing {origin?.iata ?? "—"}, {origin?.name ?? "—"}
-                  </div>
-                  {segment.departTerminal && (
-                    <div className="text-[8.5px] font-bold text-doc-ink">
-                      Terminal {segment.departTerminal}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Arrival row */}
-            <div className="mt-4 grid grid-cols-[86px_92px_92px_1fr] items-start gap-2">
-              <div>
-                <Caption>Seat</Caption>
-                <div className="text-[8.5px] text-doc-mute">Not assigned</div>
-              </div>
-              <div>
-                <Caption>Status</Caption>
-                {segment.seatStatus ? (
-                  <div className="text-[12px] font-bold leading-tight text-doc-olive">
-                    {segment.seatStatus}
-                  </div>
-                ) : (
-                  <div className="text-[8.5px] text-doc-mute">—</div>
-                )}
-              </div>
-              <div>
-                <Caption>Arrival</Caption>
-                <div className="text-[8.5px]">{arriveDate}</div>
-                <div className="text-[17px] font-bold leading-tight text-doc-grey">
-                  {segment.arrive.time || "—:—"}
-                </div>
-                {derived.destinationTz && segment.arrive.time && (
-                  <div className="text-[8px] text-doc-mute">
-                    {offsetLabel(segment.arrive, derived.destinationTz)}
-                  </div>
-                )}
-              </div>
-              <div className="flex items-start gap-3">
-                <RouteGlyph arriving />
-                <div>
-                  <div className="text-[19px] font-bold uppercase leading-none text-doc-grey">
-                    {destination?.city ?? "—"}
-                  </div>
-                  <div className="mt-1 text-[8.5px] font-bold text-doc-ink">
-                    Arriving {destination?.iata ?? "—"}, {destination?.name ?? "—"}
-                  </div>
-                  {segment.arriveTerminal && (
-                    <div className="text-[8.5px] font-bold text-doc-ink">
-                      Terminal {segment.arriveTerminal}
-                    </div>
-                  )}
-                  {derived.nextDay && (
-                    <div className="text-[8.5px] font-bold text-doc-warm">
-                      Arrives the following day.
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Coupon validity / baggage strip — mirrors the reference layout */}
-            <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-doc-panel-edge pt-2">
-              <span className="text-[8.5px] text-doc-ink">
-                Journey time{" "}
-                <strong className="font-bold text-doc-warm">
-                  {derived.durationMinutes !== null && derived.durationMinutes >= 0
-                    ? formatDuration(derived.durationMinutes)
-                    : "—"}
-                </strong>
-              </span>
-              <span className="text-[8.5px] text-doc-ink">
-                Coupon validity: not before{" "}
-                <strong className="font-bold text-doc-warm">
-                  {segment.depart.date ? formatCompactDate(segment.depart.date) : "—"}
-                </strong>{" "}
-                /{" "}
-                <span className="ml-1">
-                  not after{" "}
-                  <strong className="font-bold text-doc-warm">
-                    {couponNotAfter ? formatCompactDate(couponNotAfter) : "—"}
-                  </strong>
-                </span>
-              </span>
-              <span className="font-[family-name:var(--font-doc-serif)] text-[15px] text-doc-grey">
-                Baggage {segment.baggage || "refer to the carrier"}
-              </span>
-            </div>
-          </div>
+          {segments.map((leg, i) => (
+            <LegBlock key={leg.id} segment={leg} index={i} total={segments.length} />
+          ))}
         </section>
 
         {/*
@@ -575,5 +405,206 @@ function RouteGlyph({ arriving }: { arriving?: boolean }) {
       <span className="text-[8px] leading-none tracking-tighter">– –</span>
       <span className="text-[9px] leading-none">{arriving ? "●" : "○"}</span>
     </span>
+  );
+}
+
+/**
+ * One flight leg: direction band, "Leg N of M" strip, the departure/arrival grid,
+ * and the coupon-validity footer.
+ *
+ * Each leg gets its OWN "Departing » From <city>" band. In the reference, that band
+ * groups the legs of one journey direction — with one leg per direction (out and
+ * back) that is the same thing. If connecting flights are ever added, the grouping
+ * has to change: two legs of one outbound journey belong under a single band, and
+ * rendering a band per leg would then wrongly imply two separate journeys.
+ */
+function LegBlock({
+  segment,
+  index,
+  total,
+}: {
+  segment: Segment;
+  index: number;
+  total: number;
+}) {
+  const origin = getAirport(segment.originIata);
+  const destination = getAirport(segment.destinationIata);
+  const derived = deriveSegment(segment);
+  const carrier = airlineName(segment.airlineCode);
+  const departDate = segment.depart.date ? formatDocDate(segment.depart.date, false) : "—";
+  const arriveDate = segment.arrive.date ? formatDocDate(segment.arrive.date, false) : "—";
+  const couponNotAfter = segment.depart.date;
+
+  return (
+    <div data-keep-together className={index > 0 ? "mt-4" : ""}>
+          {/* Departing band */}
+          <div className="mt-3 flex items-center gap-2 bg-doc-band px-3 py-1.5 text-white">
+            <span aria-hidden className="text-[12px] leading-none">
+              ➜
+            </span>
+            <span className="text-[12px]">
+              Departing » From{" "}
+              <strong className="font-bold">
+                {origin?.city ?? origin?.name ?? "—"}
+                {origin?.country ? `, ${countryName(origin.country)}` : ""}
+              </strong>
+            </span>
+          </div>
+
+          {/* Leg strip */}
+          <div className="bg-doc-leg px-3 py-1 text-[8.5px] text-doc-ink">
+            <strong className="font-bold">
+              Leg {index + 1} of {total}
+            </strong>
+            <span className="mx-1.5">|</span>
+            {origin?.city ?? "—"} ({origin?.iata ?? "—"}) to {destination?.city ?? "—"} (
+            {destination?.iata ?? "—"})
+            {carrier && (
+              <>
+                <span className="mx-1.5">|</span>
+                Operated by {carrier}
+              </>
+            )}
+          </div>
+
+          {/* Leg body */}
+          <div className="bg-white px-3 pb-3 pt-3">
+            {/* Departure row */}
+            <div className="grid grid-cols-[86px_92px_92px_1fr] items-start gap-2">
+              <div>
+                <Caption>Flight</Caption>
+                <div className="text-[16px] font-bold leading-tight text-doc-grey">
+                  {segment.flightNumber || segment.airlineCode || "—"}
+                </div>
+                {segment.cabinClass && (
+                  <div className="text-[8.5px] font-bold text-doc-ink">
+                    {segment.cabinClass}
+                  </div>
+                )}
+                {segment.fareBasis && (
+                  <div className="text-[8.5px] font-bold text-doc-ink">
+                    {segment.fareBasis}
+                  </div>
+                )}
+              </div>
+              <div>
+                <Caption>Check-in at</Caption>
+                <div className="text-[8.5px]">
+                  {derived.checkIn ? formatDocDate(derived.checkIn.date, false) : "—"}
+                </div>
+                <div className="text-[17px] font-bold leading-tight text-doc-grey">
+                  {derived.checkIn?.time ?? "—:—"}
+                </div>
+              </div>
+              <div>
+                <Caption>Departure</Caption>
+                <div className="text-[8.5px]">{departDate}</div>
+                <div className="text-[17px] font-bold leading-tight text-doc-grey">
+                  {segment.depart.time || "—:—"}
+                </div>
+                {derived.originTz && segment.depart.time && (
+                  <div className="text-[8px] text-doc-mute">
+                    {offsetLabel(segment.depart, derived.originTz)}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-start gap-3">
+                <RouteGlyph />
+                <div>
+                  <div className="text-[19px] font-bold uppercase leading-none text-doc-grey">
+                    {origin?.city ?? "—"}
+                  </div>
+                  <div className="mt-1 text-[8.5px] font-bold text-doc-ink">
+                    Departing {origin?.iata ?? "—"}, {origin?.name ?? "—"}
+                  </div>
+                  {segment.departTerminal && (
+                    <div className="text-[8.5px] font-bold text-doc-ink">
+                      Terminal {segment.departTerminal}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Arrival row */}
+            <div className="mt-4 grid grid-cols-[86px_92px_92px_1fr] items-start gap-2">
+              <div>
+                <Caption>Seat</Caption>
+                <div className="text-[8.5px] text-doc-mute">Not assigned</div>
+              </div>
+              <div>
+                <Caption>Status</Caption>
+                {segment.seatStatus ? (
+                  <div className="text-[12px] font-bold leading-tight text-doc-olive">
+                    {segment.seatStatus}
+                  </div>
+                ) : (
+                  <div className="text-[8.5px] text-doc-mute">—</div>
+                )}
+              </div>
+              <div>
+                <Caption>Arrival</Caption>
+                <div className="text-[8.5px]">{arriveDate}</div>
+                <div className="text-[17px] font-bold leading-tight text-doc-grey">
+                  {segment.arrive.time || "—:—"}
+                </div>
+                {derived.destinationTz && segment.arrive.time && (
+                  <div className="text-[8px] text-doc-mute">
+                    {offsetLabel(segment.arrive, derived.destinationTz)}
+                  </div>
+                )}
+              </div>
+              <div className="flex items-start gap-3">
+                <RouteGlyph arriving />
+                <div>
+                  <div className="text-[19px] font-bold uppercase leading-none text-doc-grey">
+                    {destination?.city ?? "—"}
+                  </div>
+                  <div className="mt-1 text-[8.5px] font-bold text-doc-ink">
+                    Arriving {destination?.iata ?? "—"}, {destination?.name ?? "—"}
+                  </div>
+                  {segment.arriveTerminal && (
+                    <div className="text-[8.5px] font-bold text-doc-ink">
+                      Terminal {segment.arriveTerminal}
+                    </div>
+                  )}
+                  {derived.nextDay && (
+                    <div className="text-[8.5px] font-bold text-doc-warm">
+                      Arrives the following day.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Coupon validity / baggage strip — mirrors the reference layout */}
+            <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-doc-panel-edge pt-2">
+              <span className="text-[8.5px] text-doc-ink">
+                Journey time{" "}
+                <strong className="font-bold text-doc-warm">
+                  {derived.durationMinutes !== null && derived.durationMinutes >= 0
+                    ? formatDuration(derived.durationMinutes)
+                    : "—"}
+                </strong>
+              </span>
+              <span className="text-[8.5px] text-doc-ink">
+                Coupon validity: not before{" "}
+                <strong className="font-bold text-doc-warm">
+                  {segment.depart.date ? formatCompactDate(segment.depart.date) : "—"}
+                </strong>{" "}
+                /{" "}
+                <span className="ml-1">
+                  not after{" "}
+                  <strong className="font-bold text-doc-warm">
+                    {couponNotAfter ? formatCompactDate(couponNotAfter) : "—"}
+                  </strong>
+                </span>
+              </span>
+              <span className="font-[family-name:var(--font-doc-serif)] text-[15px] text-doc-grey">
+                Baggage {segment.baggage || "refer to the carrier"}
+              </span>
+            </div>
+          </div>
+    </div>
   );
 }
