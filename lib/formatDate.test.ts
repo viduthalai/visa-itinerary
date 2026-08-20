@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { formatDocDate, formatDocDateTime } from "@/lib/formatDate";
+import { formatCompactDate, formatDocDate, formatDocDateTime } from "@/lib/formatDate";
 
 describe("formatDocDate", () => {
   it("formats with a weekday by default", () => {
@@ -37,5 +37,21 @@ describe("formatDocDateTime", () => {
 
   it("is empty with no date", () => {
     expect(formatDocDateTime({ date: "", time: "17:30" })).toBe("");
+  });
+});
+
+describe("formatCompactDate", () => {
+  it("prints the airline-document compact form", () => {
+    expect(formatCompactDate("2026-10-15")).toBe("15Oct2026");
+    expect(formatCompactDate("2026-07-10")).toBe("10Jul2026");
+  });
+
+  it("drops the leading zero on the day, matching the reference", () => {
+    expect(formatCompactDate("2026-01-05")).toBe("5Jan2026");
+  });
+
+  it("returns empty for a malformed date rather than NaN text", () => {
+    expect(formatCompactDate("")).toBe("");
+    expect(formatCompactDate("15/10/2026")).toBe("");
   });
 });

@@ -3,7 +3,9 @@ import {
   deriveSegment,
   emptySegment,
   formatPassenger,
+  emptyFare,
   generatePnr,
+  hasFare,
   type Passenger,
   passengerWarnings,
   warningsFor,
@@ -15,13 +17,28 @@ function seg(patch: Partial<Segment>): Segment {
 }
 
 describe("generatePnr", () => {
-  it("is always 5 digits with no leading zero", () => {
+  it("is always 6 uppercase alphanumeric characters", () => {
     for (let i = 0; i < 500; i++) {
-      const p = generatePnr();
-      expect(p).toMatch(/^[1-9]\d{4}$/);
-      expect(Number(p)).toBeGreaterThanOrEqual(10000);
-      expect(Number(p)).toBeLessThanOrEqual(99999);
+      expect(generatePnr()).toMatch(/^[A-Z0-9]{6}$/);
     }
+  });
+
+  it("never contains I or O — unreadable against 1 and 0 in print", () => {
+    for (let i = 0; i < 500; i++) {
+      expect(generatePnr()).not.toMatch(/[IO]/);
+    }
+  });
+
+  it("always contains at least two letters, so it reads as a locator", () => {
+    for (let i = 0; i < 500; i++) {
+      const letters = generatePnr().replace(/[^A-Z]/g, "");
+      expect(letters.length).toBeGreaterThanOrEqual(2);
+    }
+  });
+
+  it("produces varied values rather than a constant", () => {
+    const seen = new Set(Array.from({ length: 200 }, () => generatePnr()));
+    expect(seen.size).toBeGreaterThan(150);
   });
 });
 
@@ -215,5 +232,20 @@ describe("warningsFor", () => {
 
   it("says nothing while the form is still empty", () => {
     expect(warningsFor([emptySegment()])).toEqual([]);
+  });
+});
+
+describe("hasFare", () => {
+  it("is false for a blank fare, so the block stays off the document", () => {
+    expect(hasFare(emptyFare())).toBe(false);
+  });
+
+  it("is false when fields contain only whitespace", () => {
+    expect(hasFare({ ...emptyFare(), base: "   ", total: "\n" })).toBe(false);
+  });
+
+  it("is true as soon as any single field has content", () => {
+    expect(hasFare({ ...emptyFare(), formOfPayment: "CREDIT CARD" })).toBe(true);
+    expect(hasFare({ ...emptyFare(), calculation: "BLR EK X/DXB" })).toBe(true);
   });
 });

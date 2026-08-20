@@ -5,8 +5,13 @@ import { getAirport } from "@/lib/airports";
 import { DOCUMENT_TITLE, SPECIMEN_MARKING, TOOL_NAME } from "@/lib/config";
 import { formatDuration, offsetLabel } from "@/lib/duration";
 import { countryName } from "@/lib/countries";
-import { formatDocDate } from "@/lib/formatDate";
-import { deriveSegment, formatPassenger, type Itinerary } from "@/lib/itinerary";
+import { formatCompactDate, formatDocDate } from "@/lib/formatDate";
+import {
+  deriveSegment,
+  formatPassenger,
+  hasFare,
+  type Itinerary,
+} from "@/lib/itinerary";
 
 /**
  * Layout and palette follow the information architecture of a standard airline
@@ -47,6 +52,14 @@ export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
   const issued = itinerary.generatedAt ? itinerary.generatedAt.slice(0, 10) : "";
   const departDate = segment.depart.date ? formatDocDate(segment.depart.date, false) : "—";
   const arriveDate = segment.arrive.date ? formatDocDate(segment.arrive.date, false) : "—";
+
+  /*
+   * Coupon validity window. In the reference both bounds are the DEPARTURE date on
+   * every leg — including a leg that lands the next day — so the window is not
+   * derived from the arrival. Matching that rather than inventing a range.
+   */
+  const couponNotAfter = segment.depart.date;
+  const fareShown = hasFare(itinerary.fare);
 
   return (
     <article
@@ -344,8 +357,8 @@ export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
               </div>
             </div>
 
-            {/* Journey time / baggage strip */}
-            <div className="mt-4 flex items-center gap-6 border-t border-doc-panel-edge pt-2">
+            {/* Coupon validity / baggage strip — mirrors the reference layout */}
+            <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-1 border-t border-doc-panel-edge pt-2">
               <span className="text-[8.5px] text-doc-ink">
                 Journey time{" "}
                 <strong className="font-bold text-doc-warm">
@@ -355,10 +368,17 @@ export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
                 </strong>
               </span>
               <span className="text-[8.5px] text-doc-ink">
-                {/* The reference prints "Coupon validity: not before / not after",
-                    which asserts a ticket coupon. This slot keeps the layout
-                    without making that claim. */}
-                Travel date <strong className="font-bold text-doc-warm">{departDate}</strong>
+                Coupon validity: not before{" "}
+                <strong className="font-bold text-doc-warm">
+                  {segment.depart.date ? formatCompactDate(segment.depart.date) : "—"}
+                </strong>{" "}
+                /{" "}
+                <span className="ml-1">
+                  not after{" "}
+                  <strong className="font-bold text-doc-warm">
+                    {couponNotAfter ? formatCompactDate(couponNotAfter) : "—"}
+                  </strong>
+                </span>
               </span>
               <span className="font-[family-name:var(--font-doc-serif)] text-[15px] text-doc-grey">
                 Baggage {segment.baggage || "refer to the carrier"}
@@ -367,8 +387,47 @@ export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
           </div>
         </section>
 
+        {/*
+          Fare information. Rendered ONLY when the user has filled something in —
+          an unfilled fare block would print a row of empty money columns, which
+          reads as a fare of zero rather than as no fare stated.
+        */}
+        {fareShown && (
+          <section data-keep-together className="mt-4 bg-doc-ref px-4 py-3">
+            <h2 className="font-[family-name:var(--font-doc-serif)] text-[17px] leading-none text-doc-grey">
+              Fare information
+            </h2>
+
+            <div className="mt-3 grid grid-cols-5 gap-4">
+              <FareCell label="Fare" value={itinerary.fare.base} />
+              <FareCell label="Equivalent fare" value={itinerary.fare.equivalent} />
+              <FareCell label="Taxes / Fees / Charges (TFC)" value={itinerary.fare.taxes} />
+              <FareCell label="Total fare (Incl. TFC)" value={itinerary.fare.total} />
+              <FareCell label="Form of payment" value={itinerary.fare.formOfPayment} />
+            </div>
+
+            {itinerary.fare.calculation.trim() && (
+              <div className="mt-3">
+                <div className="text-[8.5px] text-doc-ink">Fare calculation</div>
+                <div className="mt-0.5 break-words text-[8px] font-bold leading-relaxed text-doc-ink">
+                  {itinerary.fare.calculation}
+                </div>
+              </div>
+            )}
+
+            {itinerary.fare.additionalInfo.trim() && (
+              <div className="mt-3">
+                <div className="text-[8.5px] text-doc-ink">Additional information</div>
+                <div className="mt-0.5 text-[8px] font-bold leading-relaxed text-doc-ink">
+                  {itinerary.fare.additionalInfo}
+                </div>
+              </div>
+            )}
+          </section>
+        )}
+
         {/* Generic policy sections */}
-        <section className="mt-6 bg-doc-ref px-4 py-4">
+        <section className="mt-4 bg-doc-ref px-4 py-4">
           <h2 className="font-[family-name:var(--font-doc-serif)] text-[15px] leading-none text-doc-grey">
             Baggage and cabin items
           </h2>
@@ -432,6 +491,27 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function Caption({ children }: { children: React.ReactNode }) {
   return <div className="text-[8px] text-doc-mute">{children}</div>;
+}
+
+/**
+ * One column of the fare block. Empty values print an en dash, matching the
+ * reference (its "Equivalent fare" column is a bare "-"), so a column the user
+ * left blank does not silently collapse the five-column grid.
+ *
+ * whiteSpace: pre-line because real TFC values are itemised across several lines.
+ */
+function FareCell({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <div className="text-[8.5px] leading-tight text-doc-ink">{label}</div>
+      <div
+        className="mt-0.5 text-[8px] font-bold leading-relaxed text-doc-ink"
+        style={{ whiteSpace: "pre-line" }}
+      >
+        {value.trim() || "–"}
+      </div>
+    </div>
+  );
 }
 
 /**

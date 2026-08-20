@@ -31,6 +31,49 @@ export type Passenger = {
   surname: string;
 };
 
+/**
+ * Fare information block. Every field is USER-ENTERED and every one defaults to
+ * empty — nothing here is generated.
+ *
+ * That is a deliberate difference from the pnr and ticketNumber, which the app
+ * does invent. A fare is a monetary amount and a fare-calculation string is a
+ * priced construction; manufacturing either means the document states a price
+ * that was never quoted and a payment that never happened. The app will render
+ * whatever is typed and will not produce a number on its own.
+ *
+ * The whole block is hidden when every field is blank, so a document with no
+ * fare information has no empty fare section rather than a row of dashes.
+ */
+export type Fare = {
+  /** Base fare, e.g. `INR35365`. Free text so any currency notation works. */
+  base: string;
+  equivalent: string;
+  /** Taxes / fees / charges. Multi-line free text — real ones are itemised. */
+  taxes: string;
+  total: string;
+  formOfPayment: string;
+  /** GDS fare-construction line. Long, monospace-ish, wraps. */
+  calculation: string;
+  additionalInfo: string;
+};
+
+export function emptyFare(): Fare {
+  return {
+    base: "",
+    equivalent: "",
+    taxes: "",
+    total: "",
+    formOfPayment: "",
+    calculation: "",
+    additionalInfo: "",
+  };
+}
+
+/** True when at least one fare field has content — drives whether the block renders. */
+export function hasFare(f: Fare): boolean {
+  return Object.values(f).some((v) => v.trim().length > 0);
+}
+
 export type Itinerary = {
   /** 5 digits, generated once so re-rendering the document keeps the same value. */
   pnr: string;
@@ -40,6 +83,8 @@ export type Itinerary = {
   generatedAt: string;
   passengers: Passenger[];
   segments: Segment[];
+  /** Optional, user-entered. See the Fare type — nothing here is generated. */
+  fare: Fare;
 };
 
 let seq = 0;
@@ -80,9 +125,33 @@ export function formatPassenger(p: Passenger): string {
     .toUpperCase();
 }
 
-/** 5 numeric digits, 10000-99999. No leading zero. */
+/**
+ * 6 characters, uppercase alphanumeric — the real record-locator shape. Vidu's
+ * call 2026-08-20 (reversing the earlier 5-digit decision).
+ *
+ * `I` and `O` are excluded from the alphabet: every GDS omits them because they
+ * are indistinguishable from `1` and `0` in the fonts these documents get printed
+ * and faxed in, and a locator that cannot be read back reliably is worse than no
+ * locator. At least two letters are guaranteed, because an all-numeric string
+ * would not read as a locator at all.
+ *
+ * Reference shapes captured earlier: PQ7XNR, 3EK527, J1MUKK, ZYQB40.
+ */
+const PNR_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ0123456789"; // no I, no O
+const PNR_LETTERS = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+
 export function generatePnr(): string {
-  return String(10000 + Math.floor(Math.random() * 90000));
+  const pick = (from: string) => from[Math.floor(Math.random() * from.length)];
+  const chars = Array.from({ length: 6 }, () => pick(PNR_ALPHABET));
+
+  // Guarantee two letters without biasing which positions they land in.
+  const letterCount = chars.filter((c) => PNR_LETTERS.includes(c)).length;
+  for (let need = 2 - letterCount; need > 0; need--) {
+    let at = Math.floor(Math.random() * 6);
+    while (PNR_LETTERS.includes(chars[at])) at = (at + 1) % 6;
+    chars[at] = pick(PNR_LETTERS);
+  }
+  return chars.join("");
 }
 
 /** 13 digits, rendered `NNN NNNNNNNNNN`. Cosmetic only — resolves nowhere. */
@@ -105,6 +174,7 @@ export function newItinerary(): Itinerary {
     generatedAt: "",
     passengers: [emptyPassenger()],
     segments: [emptySegment()],
+    fare: emptyFare(),
   };
 }
 

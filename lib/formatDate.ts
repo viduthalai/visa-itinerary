@@ -25,6 +25,18 @@ export function formatDocDate(date: string, withWeekday = true): string {
   return `${weekday} ${body}`;
 }
 
+/**
+ * `15Oct2026` — no spaces. This is the compact form airline documents use for
+ * coupon validity and ticketing dates, and it is deliberately a separate function
+ * rather than a flag on formatDocDate: the two formats appear on the same page and
+ * mixing them up would be silent.
+ */
+export function formatCompactDate(date: string): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(date);
+  if (!m) return "";
+  return `${Number(m[3])}${MONTHS[Number(m[2]) - 1]}${m[1]}`;
+}
+
 /** `15 Oct 2026 · 17:30` */
 export function formatDocDateTime(w: WallTime): string {
   if (!w.date) return "";

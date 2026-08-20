@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { FlightDetails, RouteFields } from "@/components/FlightDetails";
 import { FlightResults } from "@/components/FlightResults";
+import { FareFields } from "@/components/FareFields";
 import { ItineraryDocument } from "@/components/ItineraryDocument";
 import { PassengerFields } from "@/components/PassengerFields";
 import { getAirport } from "@/lib/airports";
@@ -13,6 +14,7 @@ import {
   generatePnr,
   generateTicketNumber,
   newItinerary,
+  type Fare,
   type Passenger,
   passengerWarnings,
   type Segment,
@@ -131,6 +133,10 @@ export default function Page() {
     if (picked) patch(picked);
   }
 
+  function patchFare(p: Partial<Fare>) {
+    setItinerary((it) => ({ ...it, fare: { ...it.fare, ...p } }));
+  }
+
   function patchPassenger(id: string, p: Partial<Passenger>) {
     setItinerary((it) => ({
       ...it,
@@ -210,6 +216,9 @@ export default function Page() {
 
         {flightChosen && (
           <Step n={5} title="Document">
+            <div className="mb-3">
+              <FareFields fare={itinerary.fare} onChange={patchFare} />
+            </div>
             <div className="rounded-lg border border-neutral-200 bg-neutral-100 p-3">
               <div className="mb-3 flex items-center justify-between">
                 <span className="text-xs text-neutral-600">Live preview</span>
