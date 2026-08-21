@@ -91,7 +91,7 @@ export function FlightResults({ data, origin, selectedFlightNumber, onPick, head
                                 }`}
                   >
                     {selected && (
-                      <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" aria-hidden>
+                      <svg viewBox="0 0 16 16" className="tick-pop h-3 w-3" fill="none" aria-hidden>
                         <path
                           d="M3.5 8.5l3 3 6-7"
                           stroke="currentColor"

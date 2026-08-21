@@ -28,10 +28,10 @@ export function SiteHeader() {
             <PlaneIcon />
           </span>
           <span className="leading-tight">
-            <span className="block font-[family-name:var(--font-display)] text-[17px] font-semibold text-ink">
+            <span className="block font-[family-name:var(--font-display)] text-base font-semibold text-ink">
               {TOOL_NAME}
             </span>
-            <span className="block text-[11px] text-ink-mute">Travel document builder</span>
+            <span className="block text-xs text-ink-mute">Travel document builder</span>
           </span>
         </Link>
 

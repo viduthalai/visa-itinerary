@@ -134,7 +134,7 @@ function Area({
         onChange={(e) => onChange(e.target.value)}
         className={`${fieldClass} font-mono text-xs`}
       />
-      {hint && <span className="text-[11px] text-ink-mute">{hint}</span>}
+      {hint && <span className="text-xs text-ink-mute">{hint}</span>}
     </label>
   );
 }

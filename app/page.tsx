@@ -48,7 +48,30 @@ export default function Page() {
   // different dates, so a single shared state would let the return results
   // overwrite the outbound ones.
   const [searches, setSearches] = useState<SearchState[]>([{ status: "idle" }]);
-  const [step, setStep] = useState(1);
+  /*
+   * Step and direction are ONE piece of state, not two.
+   *
+   * The panel animation needs to know which way the user moved, and deriving that
+   * from a previous-value ref would be read during render while being written in an
+   * effect — two sources that can disagree for a frame. Holding both in a single
+   * object makes every transition atomic: there is no render in which the step has
+   * changed but the direction has not.
+   *
+   * `setStep` keeps its original signature (number or updater) so all eight existing
+   * call sites — reset, auto-advance, jump, Back, Continue — work unchanged and pick
+   * up the direction for free.
+   */
+  const [nav, setNav] = useState<{ step: number; dir: "fwd" | "back" }>({
+    step: 1,
+    dir: "fwd",
+  });
+  const step = nav.step;
+  const setStep = useCallback((next: number | ((s: number) => number)) => {
+    setNav((prev) => {
+      const n = typeof next === "function" ? next(prev.step) : next;
+      return n === prev.step ? prev : { step: n, dir: n < prev.step ? "back" : "fwd" };
+    });
+  }, []);
 
   // PNR and generatedAt are non-deterministic, so they are produced on the client
   // only — during render they would differ between server and client HTML and
@@ -228,6 +251,29 @@ export default function Page() {
 
   const canContinue = step < STEPS.length && step < reachable;
 
+  /*
+   * Text for the live region. Derived, never stored: a stored copy is a second source
+   * of truth that goes stale precisely when the announcement matters.
+   *
+   * The counts are read from the same `searches` array the list renders from, so the
+   * announcement cannot claim a different number of flights than the page shows —
+   * which is the failure mode that makes a live region worse than none.
+   */
+  const liveStatus = useMemo(() => {
+    if (searching) return "Searching for flights…";
+    if (searches.some((s) => s.status === "error"))
+      return "Flight search failed. You can enter the flight details by hand instead.";
+    if (!anyResults) return "";
+    const parts = searches.map((s, i) => {
+      if (s.status !== "done") return null;
+      const n = s.data.results.length;
+      const label = legLabel(itinerary.segments, i);
+      return `${n} ${n === 1 ? "flight" : "flights"} found for ${label}`;
+    });
+    const found = parts.filter(Boolean).join(". ");
+    return found ? `${found}. Now on step ${step} of ${STEPS.length}: ${STEPS[step - 1].title}.` : "";
+  }, [searching, searches, anyResults, itinerary.segments, step]);
+
   return (
     <>
       <HeroBand reference={itinerary.pnr} />
@@ -246,9 +292,26 @@ export default function Page() {
         <StepProgress steps={STEPS} current={step} reachable={reachable} onJump={setStep} />
       </div>
 
+      {/*
+        The only announcement a screen-reader user gets for the primary action.
+        Pressing "Search flights" changes the step, swaps the panel and lands three
+        results — all of it silent without this. Measured with 2.5s of injected
+        latency: the button label goes to "Searching…" but nothing was announced, so a
+        non-sighted user got silence after pressing the main button and then a page
+        that had quietly rearranged itself.
+
+        `aria-live="polite"` rather than assertive: it must not interrupt someone
+        mid-sentence in a field. Rendered but visually hidden, so it can never drift
+        from the state it describes the way a duplicated visible label would.
+      */}
+      <p role="status" aria-live="polite" className="sr-only">
+        {liveStatus}
+      </p>
+
       {/* `key` on the step makes React remount the panel, which restarts the
-          fade — a step change should read as a change, not a silent repaint. */}
-      <div key={step} className="step-panel mt-8">
+          animation — a step change should read as a change, not a silent repaint.
+          The class is directional so the motion says WHICH way you moved. */}
+      <div key={step} className={`mt-8 step-panel-${nav.dir}`}>
         <h2 className="mb-3 font-[family-name:var(--font-display)] text-xl font-semibold text-ink">
           {STEPS[step - 1].title}
         </h2>
@@ -284,6 +347,16 @@ export default function Page() {
                 Pick two different airports and a departure date to search.
               </p>
             )}
+            {/*
+              Skeleton, not a spinner.
+              It lives on step 1 rather than step 2 because step 2 is unreachable until
+              results exist (`reachable`), so the wait genuinely happens here.
+              A skeleton previews the SHAPE of what is coming and holds the height, so
+              the results do not shove the page when they land. With the local mock this
+              is invisible (~100ms); at a real provider's 300ms–2s it is the difference
+              between a considered wait and a jump.
+            */}
+            {searching && <ResultSkeleton legs={itinerary.segments.length} />}
             {searches.map((st, i) =>
               st.status === "error" ? (
                 <p
@@ -453,7 +526,7 @@ export default function Page() {
       <div className="border-t border-line">
       <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
       <section id="how-it-works" className="scroll-mt-20">
-        <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-ink">
+        <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-ink">
           How it works
         </h2>
         <ol className="mt-5 grid gap-4 sm:grid-cols-3">
@@ -461,26 +534,36 @@ export default function Page() {
             {
               t: "Enter your route",
               d: "Pick airports from 4,565 with IATA codes. Add a return date for a round trip, or leave it blank for one-way.",
+              icon: <RouteMark />,
             },
             {
               t: "Choose your flights",
               d: "Search returns carriers and times. Arrival is computed in the destination's timezone, so the document never prints a time that airport would not show.",
+              icon: <ListMark />,
             },
             {
               t: "Save the PDF",
               d: "Add passengers and any terminal, cabin or baggage detail, then print. The preview is the PDF — there is no second template to drift.",
+              icon: <PageMark />,
             },
-          ].map((s2, i) => (
+          ].map((s2) => (
             <li
               key={s2.t}
               className="rounded-xl border border-line bg-surface p-5 shadow-[var(--shadow-card)] transition-transform duration-200 hover:-translate-y-0.5"
             >
+              {/*
+                A mark, not the index. The <ol> already conveys order structurally, so
+                the digit was carrying no information a screen reader did not already
+                have — while a glyph of the actual action gives a sighted user something
+                to scan by. Vector, currentColor, no emoji: emoji resolve to whichever
+                colour-emoji font the machine has, so the same page prints differently
+                on a different computer.
+              */}
               <span
                 aria-hidden
-                className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/15
-                           font-[family-name:var(--font-display)] text-sm font-semibold text-secondary"
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-secondary"
               >
-                {i + 1}
+                {s2.icon}
               </span>
               <h3 className="mt-3 text-sm font-semibold text-ink">{s2.t}</h3>
               <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{s2.d}</p>
@@ -490,7 +573,7 @@ export default function Page() {
       </section>
 
       <section id="faq" className="mt-16 scroll-mt-20">
-        <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-ink">
+        <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-ink">
           FAQ
         </h2>
         <div className="mt-5 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface shadow-[var(--shadow-card)]">
@@ -535,6 +618,43 @@ export default function Page() {
 }
 
 /**
+ * Placeholder rows shown while a search is in flight.
+ *
+ * The geometry mirrors a real result row — same widths, same three-then-price rhythm,
+ * same 26px pill on the right — so the layout does not shift when the real rows
+ * replace it. A generic grey block would still cause the jump it exists to prevent.
+ *
+ * `aria-hidden`: the wait is announced once, properly, by the live region. A screen
+ * reader reading out six empty placeholder boxes is noise, not information.
+ */
+function ResultSkeleton({ legs }: { legs: number }) {
+  return (
+    <div aria-hidden className="mt-4 grid gap-4">
+      {Array.from({ length: legs }).map((_, legIndex) => (
+        <div
+          key={legIndex}
+          className="rounded-xl border border-line bg-surface p-5 shadow-[var(--shadow-card)]"
+        >
+          {legs > 1 && <div className="skeleton mb-3 h-3 w-40 rounded bg-muted" />}
+          <div className="divide-y divide-line">
+            {[0, 1, 2].map((row) => (
+              <div key={row} className="flex items-center gap-3 px-3 py-3">
+                <div className="skeleton h-3 w-16 rounded bg-muted" />
+                <div className="skeleton h-3 w-36 rounded bg-muted" />
+                <div className="skeleton h-3 w-12 rounded bg-muted" />
+                <div className="skeleton h-3 w-14 rounded bg-muted" />
+                <div className="skeleton ml-auto h-3 w-10 rounded bg-muted" />
+                <div className="skeleton h-[26px] w-[86px] shrink-0 rounded-full bg-muted" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/**
  * "Outbound — BLR to DXB". Used for search headings, per-leg detail headings and
  * error messages, so one leg can never be described two different ways.
  */
@@ -550,6 +670,41 @@ function DownloadIcon() {
     <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 3v12m0 0 4-4m-4 4-4-4" />
       <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
+    </svg>
+  );
+}
+
+/*
+ * Marks for the "How it works" band. 18px, `currentColor`, stroke-only so they inherit
+ * the tile's text colour and stay legible in either theme zone without a second copy.
+ */
+function RouteMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="5" cy="18" r="2.2" />
+      <circle cx="19" cy="6" r="2.2" />
+      <path d="M6.8 16.4C9 13 12 9.5 17 6.9" strokeDasharray="2.6 2.4" />
+    </svg>
+  );
+}
+
+function ListMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M4 7h11M4 12h11M4 17h7" />
+      <path d="M17.5 16.2l1.7 1.7 3-3.4" />
+    </svg>
+  );
+}
+
+function PageMark() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+         strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
+      <path d="M14 3v5h5M9 13h6M9 17h4" />
     </svg>
   );
 }

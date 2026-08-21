@@ -208,16 +208,36 @@ input[type="time"][data-empty="true"] {
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+    /*
+     * Delays must be zeroed too, not just durations.
+     *
+     * Measured: the hero's destination pin uses `pop-in ... 1600ms both` so the arc
+     * reaches it before it appears. With only the duration collapsed, the delay
+     * survived and the `both` fill held the FROM keyframe — opacity 0 — for a full
+     * 1.6 seconds. A reduced-motion user got a blank space where content should be,
+     * which is worse than the animation they opted out of.
+     *
+     * Any staged reveal has this failure mode, so it belongs in the global reset
+     * rather than being remembered at each call site.
+     */
+    animation-delay: 0s !important;
     transition-duration: 0.01ms !important;
+    transition-delay: 0s !important;
     scroll-behavior: auto !important;
   }
 }
 
 /* Step panels fade in so a step change reads as a change, not a repaint. */
-@keyframes step-in {
+/*
+ * Step transitions are DIRECTIONAL. The old single `step-in` slid up 6px whichever
+ * way you moved, so going back felt identical to going forward — the motion carried
+ * no information. Signing the translate by direction means the animation itself tells
+ * you which way you went, which is the only reason to animate a panel swap at all.
+ */
+@keyframes step-in-fwd {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translate3d(0, 8px, 0);
   }
   to {
     opacity: 1;
@@ -225,8 +245,108 @@ input[type="time"][data-empty="true"] {
   }
 }
 
-.step-panel {
-  animation: step-in 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+@keyframes step-in-back {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -8px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.step-panel-fwd {
+  animation: step-in-fwd 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.step-panel-back {
+  animation: step-in-back 300ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/*
+ * Hero route reveal.
+ *
+ * The arc is drawn by animating a MASK rather than the visible stroke, because the
+ * visible stroke is dashed (`6 5`) and its dash pattern is the design. Animating its
+ * own dashoffset would make the dots crawl, not draw. A solid white path inside an
+ * SVG mask sweeps along the same curve and progressively reveals the dotted arc
+ * underneath, so the look is preserved and the motion is additive.
+ *
+ * `pathLength="1"` on the mask path normalises the geometry, so `stroke-dasharray: 1`
+ * and an offset of 1 → 0 draws exactly the whole curve without anyone having to
+ * measure it or keep a magic number in sync with the `d` attribute.
+ *
+ * `both` fill: under prefers-reduced-motion the global rule collapses the duration to
+ * 0.01ms and the final keyframe still applies, so the arc appears fully drawn rather
+ * than never drawn. A reduced-motion user must not lose content.
+ */
+@keyframes arc-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+.arc-reveal {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: arc-draw 1500ms 250ms cubic-bezier(0.33, 1, 0.68, 1) both;
+}
+
+/* Endpoint and aircraft arrive as the arc reaches them, not before. */
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.arc-arrival {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pop-in 320ms 1600ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* The aircraft sits at the arc's MIDPOINT, so it arrives when the reveal sweeps past
+   it — roughly halfway through the 1500ms draw — not with the destination pin at the
+   end. Sharing one delay would have it appear over an arc that has not reached it. */
+.arc-midway {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pop-in 300ms 950ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Same motion on the chosen-flight tick: the one decisive click in the flow. */
+.tick-pop {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pop-in 200ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/*
+ * Skeleton rows while a search is in flight.
+ *
+ * Deliberately a skeleton and not a spinner: it holds the height the results will
+ * occupy, so the panel does not collapse and then shove the page down when they land.
+ * With the local mock this is invisible (~100ms), but a real provider takes 300ms–2s
+ * and that is when a spinner would let the layout jump.
+ */
+@keyframes skeleton-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.9;
+  }
+}
+
+.skeleton {
+  animation: skeleton-pulse 1400ms ease-in-out infinite;
 }
 
 /*

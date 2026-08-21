@@ -43,7 +43,7 @@ export function StepProgress({
             <span
               aria-hidden
               className={[
-                "flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-medium",
+                "flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium",
                 "transition-all duration-200",
                 active
                   ? "bg-primary text-on-primary ring-4 ring-primary/15"
@@ -61,7 +61,7 @@ export function StepProgress({
           const label = (
             <span
               className={[
-                "mt-1.5 block text-center text-[10px] leading-tight",
+                "mt-1.5 block text-center text-xs leading-tight",
                 // A future step is quieter than a reachable one, but it is still
                 // INFORMATION — a stepper exists to say what is coming. Opacity was
                 // the wrong tool for that: `ink-mute/50` measured 1.11:1, which is
@@ -115,7 +115,7 @@ export function StepProgress({
           aria-label={`Step ${current} of ${steps.length}`}
         />
       </div>
-      <p className="mt-2 text-[11px] font-medium text-ink-mute">
+      <p className="mt-2 text-xs font-medium text-ink-mute">
         Step {current} of {steps.length}
       </p>
     </nav>
