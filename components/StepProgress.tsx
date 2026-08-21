@@ -51,7 +51,7 @@ export function StepProgress({
                     ? "bg-primary text-on-primary"
                     : s.n <= reachable
                       ? "border border-ink-mute bg-surface text-ink-soft"
-                      : "border border-line bg-surface text-ink-mute/50",
+                      : "border border-line bg-surface text-ink-mute",
               ].join(" ")}
             >
               {done ? "✓" : s.n}
@@ -62,11 +62,16 @@ export function StepProgress({
             <span
               className={[
                 "mt-1.5 block text-center text-[10px] leading-tight",
+                // A future step is quieter than a reachable one, but it is still
+                // INFORMATION — a stepper exists to say what is coming. Opacity was
+                // the wrong tool for that: `ink-mute/50` measured 1.11:1, which is
+                // not "de-emphasised", it is gone. Full-strength ink-mute is 4.71:1
+                // on the surface and still visibly the quietest of the three tiers.
                 active
                   ? "font-semibold text-ink"
                   : s.n <= reachable
                     ? "text-ink-soft"
-                    : "text-ink-mute/50",
+                    : "text-ink-mute",
               ].join(" ")}
             >
               {s.title}

@@ -44,7 +44,7 @@ export function FlightResults({ data, origin, selectedFlightNumber, onPick, head
                   type="button"
                   aria-pressed={selected}
                   onClick={() => onPick(r)}
-                  className={`flex w-full cursor-pointer items-baseline gap-3 rounded-lg px-3 py-3 text-left
+                  className={`group flex w-full cursor-pointer items-center gap-3 rounded-lg px-3 py-3 text-left
                               text-sm transition-colors duration-200 hover:bg-muted
                               ${selected ? "bg-primary/15 ring-1 ring-primary/40" : ""}`}
                 >
@@ -63,7 +63,44 @@ export function FlightResults({ data, origin, selectedFlightNumber, onPick, head
                   <span className="ml-auto text-xs text-ink-mute">
                     {r.price !== null ? `${r.currency === "USD" ? "$" : ""}${r.price}` : ""}
                   </span>
-                  <span className="w-14 text-right text-xs font-semibold text-secondary">
+                  {/*
+                   * A SPAN, not a button. The whole row is already the button, so a
+                   * nested <button> would be invalid nesting — and it would shrink the
+                   * click target from the full row to this pill. It only has to LOOK
+                   * like a control; the row provides the behaviour.
+                   *
+                   * Colours come from `secondary`, deliberately not `primary`: the row
+                   * fill and ring already use primary for the chosen state, so a primary
+                   * pill inside a primary-tinted row loses its edge.
+                   *
+                   * The border is present in BOTH states — matching the fill when chosen,
+                   * so it is invisible but still occupies the box. Without it the pill
+                   * measured 74x26 unselected and 76x24 chosen, and the row jittered 2px
+                   * on click. Fixed width for the same reason: the check icon is +2px.
+                   */}
+                  <span
+                    aria-hidden
+                    className={`inline-flex w-[86px] shrink-0 items-center justify-center gap-1
+                                rounded-full border px-2.5 py-1 text-xs font-semibold
+                                transition-colors duration-200
+                                ${
+                                  selected
+                                    ? "border-secondary bg-secondary text-canvas"
+                                    : `border-ink-mute bg-elevated text-ink
+                                       group-hover:border-secondary group-hover:text-secondary`
+                                }`}
+                  >
+                    {selected && (
+                      <svg viewBox="0 0 16 16" className="h-3 w-3" fill="none" aria-hidden>
+                        <path
+                          d="M3.5 8.5l3 3 6-7"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                        />
+                      </svg>
+                    )}
                     {selected ? "Chosen" : "Select"}
                   </span>
                 </button>
