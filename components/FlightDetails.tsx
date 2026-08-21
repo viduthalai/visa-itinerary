@@ -6,6 +6,7 @@ import { AirportPicker } from "@/components/AirportPicker";
 import { formatAirline } from "@/lib/airlines";
 import { formatDuration, offsetLabel } from "@/lib/duration";
 import { deriveSegment, type Segment } from "@/lib/itinerary";
+import { useTodayIso } from "@/lib/today";
 
 type Props = {
   segment: Segment;
@@ -44,6 +45,7 @@ export function FlightDetails({
               type="date"
               className={fieldClass}
               value={segment.depart.date}
+              data-empty={!segment.depart.date}
               onChange={(e) => onChange({ depart: { ...segment.depart, date: e.target.value } })}
             />
           </label>
@@ -53,6 +55,7 @@ export function FlightDetails({
               type="time"
               className={fieldClass}
               value={segment.depart.time}
+              data-empty={!segment.depart.time}
               onChange={(e) => onChange({ depart: { ...segment.depart, time: e.target.value } })}
             />
           </label>
@@ -65,6 +68,7 @@ export function FlightDetails({
               type="date"
               className={fieldClass}
               value={segment.arrive.date}
+              data-empty={!segment.arrive.date}
               onChange={(e) => onChange({ arrive: { ...segment.arrive, date: e.target.value } })}
             />
           </label>
@@ -74,6 +78,7 @@ export function FlightDetails({
               type="time"
               className={fieldClass}
               value={segment.arrive.time}
+              data-empty={!segment.arrive.time}
               onChange={(e) => onChange({ arrive: { ...segment.arrive, time: e.target.value } })}
             />
           </label>
@@ -225,6 +230,18 @@ export function RouteFields({
   returnDate,
   onReturnDateChange,
 }: Props & { returnDate: string; onReturnDateChange: (d: string) => void }) {
+  /*
+   * Past dates are blocked on the SEARCH dates only. No provider returns schedules
+   * for a date that has already happened, so offering them here just produces an
+   * empty result list and a confused user.
+   *
+   * Deliberately NOT applied to the "Departs" / "Arrives" fields in FlightDetails:
+   * those are the manual-entry path, which exists precisely because search cannot
+   * cover past dates. Constraining both would close the escape hatch and make a
+   * past-dated itinerary impossible to build at all.
+   */
+  const today = useTodayIso();
+
   const reverseLabel =
     segment.destinationIata && segment.originIata
       ? `${segment.destinationIata} → ${segment.originIata}`
@@ -255,6 +272,8 @@ export function RouteFields({
             type="date"
             className={fieldClass}
             value={segment.depart.date}
+            data-empty={!segment.depart.date}
+            min={today}
             onChange={(e) => onChange({ depart: { ...segment.depart, date: e.target.value } })}
           />
         </label>
@@ -264,7 +283,10 @@ export function RouteFields({
             type="date"
             className={fieldClass}
             value={returnDate}
-            min={segment.depart.date || undefined}
+            data-empty={!returnDate}
+            /* Not before the outbound — and not in the past either, for the case
+               where the outbound is still blank. */
+            min={segment.depart.date || today}
             onChange={(e) => onReturnDateChange(e.target.value)}
           />
         </label>

@@ -20,7 +20,7 @@ export function FlightResults({ data, origin, selectedFlightNumber, onPick, head
     <div className="rounded-xl border border-line bg-surface p-5 shadow-[var(--shadow-card)]">
       {heading && <h3 className="mb-2 text-sm font-medium">{heading}</h3>}
       {data.source === "mock" && (
-        <p className="mb-3 rounded-lg border border-amber-400/30 bg-amber-400/10 px-3 py-2 text-xs text-amber-100/90">
+        <p className="mb-3 rounded-lg border border-amber-500/40 bg-amber-50 px-3 py-2 text-xs text-amber-900">
           <span className="font-semibold">Sample data.</span> {data.note}
         </p>
       )}

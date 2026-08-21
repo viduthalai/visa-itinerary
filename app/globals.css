@@ -36,10 +36,19 @@
   --color-primary-hover: #2f6fe0;
   --color-on-primary: #ffffff;
   --color-secondary: #7dd3fc;
-  /* Warm accent, chosen to rhyme with the document's own #CB3333 title red so the
-     tool and its output read as one product. */
-  --color-accent: #e14b3f;
-  --color-accent-hover: #c93a30;
+  /*
+   * Warm accent, chosen to rhyme with the document's own #CB3333 title red so the
+   * tool and its output read as one product.
+   *
+   * This drives the "Save as PDF" button — the app's single most important action.
+   * It was #e14b3f, which carries white at only 3.98:1 and fails AA. #c93a30 gives
+   * 5.08:1 and still holds 3.39:1 against the dark surface, so it satisfies both
+   * SC 1.4.3 (text) and SC 1.4.11 (non-text) in either zone. The hover is the
+   * document's own deep wordmark red, which tightens the rhyme rather than
+   * inventing a fourth red.
+   */
+  --color-accent: #c93a30;
+  --color-accent-hover: #a32731;
   --color-ink: #e9eef7;
   --color-ink-soft: #a9b7cd;
   --color-ink-mute: #77879f;
@@ -93,6 +102,87 @@ body {
 body {
   background: var(--color-canvas);
   color: var(--color-ink);
+}
+
+/*
+ * Split personality: the header, hero and the explainer/FAQ band are dark
+ * (cinematic, atmospheric); the working form area is light (readable,
+ * professional, no eye strain during extended data entry).
+ *
+ * The light zone is OPT-IN via `.theme-light`, deliberately not applied to
+ * `main` wholesale. An earlier version made `main` light and then punched a dark
+ * hole back through it for the explainer band, which meant the dark palette was
+ * written out a second time — as an inline `style` object in page.tsx, of all
+ * places. Colour values in a .tsx file are colour values nobody looks for, and
+ * that is how the last theme regression happened.
+ *
+ * Inverting it means the dark palette is declared exactly ONCE, in @theme above:
+ * anything not inside `.theme-light` is dark for free. There is no `.theme-dark`
+ * to drift out of sync because there is nothing to keep in sync.
+ *
+ * Overriding the SEMANTIC tokens (rather than swapping classes) means every
+ * component using `bg-surface` / `text-ink` / `border-line` resolves to its light
+ * value automatically, with no per-component branching.
+ */
+.theme-light {
+  --color-canvas: #f8fafc;
+  --color-surface: #ffffff;
+  --color-elevated: #f8fafc;
+  --color-ink: #0f172a;
+  --color-ink-soft: #475569;
+  --color-ink-mute: #64748b;
+  --color-muted: #f1f5f9;
+  --color-line: #e2e8f0;
+  /*
+   * Deep navy, not the shell's #3b82f6. That blue cannot carry white text at body
+   * size — it measures 3.68:1 and fails AA — and on a dark canvas there was no
+   * clean fix: darkening it to pass the text check drops the button's own
+   * fill-vs-surface contrast to 2.57:1 and fails SC 1.4.11 instead. On white,
+   * #1e3a5f carries white at 11.50:1 with room to spare.
+   */
+  --color-primary: #1e3a5f;
+  --color-primary-hover: #16304f;
+  /*
+   * accent / accent-hover are deliberately NOT overridden here. Both themes want
+   * the same red, and re-stating it was the bug: the light zone was still pinning
+   * the old #e14b3f (white at 3.98:1, an AA failure on the "Save as PDF" button)
+   * long after @theme had been corrected to #c93a30. An override that repeats the
+   * default is invisible until it silently stops matching it.
+   */
+  --color-secondary: #2563eb;
+  --color-destructive: #dc2626;
+  /* No inset light edge here: on a light surface that reads as a smudge. Depth
+     comes from the shadow alone. */
+  --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.04);
+  --shadow-lift: 0 4px 12px rgba(15, 23, 42, 0.08), 0 12px 32px rgba(15, 23, 42, 0.06);
+  --shadow-paper: 0 8px 32px rgba(15, 23, 42, 0.12), 0 2px 6px rgba(15, 23, 42, 0.06);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+/*
+ * Native date placeholder.
+ *
+ * An empty `<input type="date">` paints its `dd/mm/yyyy` hint in the field's own
+ * `color`, so it rendered at full ink (#0f172a, 17.06:1) while every text field's
+ * placeholder sat at ink-mute (4.55:1). The two read as different states — the date
+ * looked like a value already entered.
+ *
+ * Setting `color` on the INPUT rather than styling `::-webkit-datetime-edit`: the
+ * hint is painted in the field colour, and when the field is empty there is no real
+ * value for this to wash out. That makes it engine-agnostic — the vendor pseudo is
+ * Chromium/WebKit only and Firefox exposes nothing equivalent — and it is directly
+ * observable via `getComputedStyle(input).color`, whereas the pseudo is a shadow
+ * part that `getComputedStyle` reports unreliably. A rule I cannot measure is a rule
+ * I cannot claim works.
+ *
+ * `data-empty` is driven by React because there is no reliable CSS hook: an empty
+ * date input is not `:placeholder-shown`, and it is only `:invalid` when also
+ * `required`. The component already knows, so it says so.
+ */
+input[type="date"][data-empty="true"],
+input[type="time"][data-empty="true"] {
+  color: var(--color-ink-mute);
 }
 
 /*

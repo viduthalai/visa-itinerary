@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { fieldClass, labelClass } from "@/components/ui";
 import { type Airport, formatAirport, getAirport, searchAirports } from "@/lib/airports";
 
 type Props = {
@@ -65,8 +66,16 @@ export function AirportPicker({ label, value, onChange, placeholder = "JFK" }: P
 
   return (
     <div ref={rootRef} className="relative">
-      <label className="block text-xs font-medium text-ink-soft">
+      <label className={labelClass}>
         {label}
+        {/*
+          The shared fieldClass and labelClass, not local copies. Both were
+          hand-rolled duplicates that had drifted: the input lost `text-ink` and
+          `placeholder:text-ink-mute`, so its placeholder fell through to Tailwind's
+          default (currentColor at 50% alpha) and measured 2.29:1 against the field —
+          under AA, and visibly lighter than every other field in the form. The label
+          had drifted to font-medium against everything else's font-semibold.
+        */}
         <input
           type="text"
           role="combobox"
@@ -74,9 +83,7 @@ export function AirportPicker({ label, value, onChange, placeholder = "JFK" }: P
           aria-controls={listId}
           aria-autocomplete="list"
           autoComplete="off"
-          className="mt-1.5 min-h-11 w-full rounded-lg border border-line bg-elevated px-3 py-2 text-sm
-                     transition-colors duration-200 hover:border-ink-mute
-                     focus:border-primary focus:outline-none"
+          className={fieldClass}
           placeholder={placeholder}
           value={open ? query : selected ? formatAirport(selected) : query}
           onChange={(e) => {

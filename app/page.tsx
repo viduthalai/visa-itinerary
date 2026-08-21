@@ -232,7 +232,16 @@ export default function Page() {
     <>
       <HeroBand reference={itinerary.pnr} />
 
-      <main id="main" className="mx-auto max-w-5xl px-4 pb-8 pt-10 sm:px-6">
+      {/*
+        `main` carries no width or padding of its own: each zone below owns a
+        full-bleed background with its own centred container inside. Putting the
+        max-width on `main` is what forced the explainer band to fake full-bleed
+        with negative margins, which is why its rounded corners landed in mid-air.
+      */}
+      <main id="main">
+      {/* ── Light zone: the work surface ───────────────────────────────────── */}
+      <div className="theme-light">
+      <div className="mx-auto max-w-5xl px-4 pb-16 pt-10 sm:px-6">
       <div className="mt-8">
         <StepProgress steps={STEPS} current={step} reachable={reachable} onJump={setStep} />
       </div>
@@ -410,12 +419,15 @@ export default function Page() {
       {warnings.length > 0 && (
         <section
           aria-label="Warnings"
-          className="mt-6 rounded-xl border border-amber-400/30 bg-amber-400/10 p-4"
+          className="mt-6 rounded-xl border border-amber-500/40 bg-amber-50 p-4"
         >
-          <h2 className="text-xs font-bold uppercase tracking-wider text-amber-300">
+          {/* Amber-900 on amber-50, NOT the dark zone's amber-300 on amber-400/10:
+              that pairing is a light cream on a pale wash, which measured under
+              2:1 once this panel moved onto a white surface. */}
+          <h2 className="text-xs font-bold uppercase tracking-wider text-amber-900">
             Worth checking — none of these block your document
           </h2>
-          <ul className="mt-2 space-y-1 text-sm text-amber-100/90">
+          <ul className="mt-2 space-y-1 text-sm text-amber-900">
             {warnings.map((w, i) => (
               <li key={`${w.segmentId}-${i}`}>{w.text}</li>
             ))}
@@ -427,8 +439,20 @@ export default function Page() {
         These two sections exist because the header and footer link to them. A nav
         link pointing at an anchor that does not exist is a broken link, so the
         content is real rather than placeholder marketing.
+
+        They sit in a dark band that matches the hero, separating the "your work"
+        zone above from the "about the tool" zone below. It is FULL BLEED with no
+        border radius: the previous version was a `rounded-2xl` card stretched to
+        the edges with negative margins, so its corners curved away from nothing
+        and read as a mistake. A zone boundary is a straight edge — the rounding
+        belongs on the cards inside it, not on the band.
       */}
-      <section id="how-it-works" className="mt-20 scroll-mt-20">
+      </div>
+      </div>
+      {/* ── Dark zone: inherits the root palette, no override needed ────────── */}
+      <div className="border-t border-line">
+      <div className="mx-auto max-w-5xl px-4 py-16 sm:px-6">
+      <section id="how-it-works" className="scroll-mt-20">
         <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-ink">
           How it works
         </h2>
@@ -503,6 +527,8 @@ export default function Page() {
           ))}
         </div>
       </section>
+      </div>
+      </div>
       </main>
     </>
   );
