@@ -1,4 +1,9 @@
-import { noseUpRotationDeg, parseQuadratic, quadPointAt } from "@/lib/arc";
+import {
+  AIRCRAFT_GLYPH_D,
+  noseUpRotationDeg,
+  parseQuadratic,
+  quadPointAt,
+} from "@/lib/arc";
 
 /**
  * Hero band.
@@ -197,10 +202,24 @@ function Stat({ value, label, mono }: { value: string; label: string; mono?: boo
 function FlightArc() {
   return (
     <div
-      /* aria-hidden and the lg gate live on HeroArtwork now — one decoration, one
-         place that declares it decorative. `relative` keeps it above the tilted
-         silhouette without needing a z-index. */
-      className="glass relative overflow-hidden rounded-2xl border border-line p-6 shadow-[var(--shadow-lift)]"
+      /*
+       * OPAQUE, not `.glass`.
+       *
+       * This panel was frosted (`backdrop-filter: blur(12px)` over a 72%-opaque fill),
+       * which is fine over a page background and wrong over another element: the
+       * document silhouette sitting behind it ghosted straight through as a grey wash
+       * across the top-right, and the aircraft — which rides the arc's apex at roughly
+       * (219, 108) in panel space — landed inside that wash and became invisible.
+       *
+       * Worth recording how that was found: the glyph measured perfectly (0 mirror
+       * violations, 0.05 units off the curve, 0° rotation error) while being completely
+       * unreadable on screen. Geometry checks describe an element; they say nothing
+       * about what is painted on top of it. Only the screenshot showed it.
+       *
+       * `.glass` is untouched — the header still uses it, correctly, over the page.
+       */
+      className="relative overflow-hidden rounded-2xl border border-line bg-[#0e1729]
+                 p-6 shadow-[var(--shadow-lift)]"
     >
       <svg viewBox="0 0 420 260" className="h-auto w-full" role="presentation">
         <defs>
@@ -262,20 +281,27 @@ function FlightArc() {
         {/* Destination and aircraft land as the arc reaches them, not before. */}
         <circle className="arc-arrival" cx="302" cy="118" r="5" fill="#c93a30" />
         {/*
-          Position and heading are DERIVED from the curve (lib/arc.ts), not tuned by
-          eye. The previous transform was `translate(206 62) rotate(28)` — measured at
-          34.6 units off the path and 36° away from its tangent, so the aircraft hovered
-          above the route pointing across it. Reading both from ARC_D means the glyph
-          follows the curve if the curve ever moves.
+          TWO nested groups, deliberately.
+
+          Outer carries POSITION, inner carries the ANIMATION, and they must not be the
+          same element. In SVG the `transform` attribute maps onto the CSS `transform`
+          property, so a keyframe that animates `transform` REPLACES it outright — and
+          `pop-in` ends on `transform: scale(1)`, which with `fill-mode: both` sticks
+          permanently. Both earlier versions of this had the animation on the positioned
+          group, so the computed transform collapsed to the identity matrix and the
+          aircraft was painted at the viewBox origin, clipped out of the panel. It was
+          never visible on screen.
+
+          It survived three rounds of checking because every check read
+          `getAttribute("transform")` — the authored string, which was correct — while
+          the browser painted from the computed value, which was `matrix(1,0,0,1,0,0)`.
+          Position and heading are still derived from the curve (lib/arc.ts); that part
+          was right all along.
         */}
-        <g
-          className="arc-midway"
-          transform={`translate(${PLANE.x} ${PLANE.y}) rotate(${PLANE_ROT}) scale(0.85)`}
-        >
-          <path
-            d="M0-9 3-2 13 1 13 4 3 3 1 10 5 12 5 14-1 13-7 14-7 12-3 10-5 3-15 4-15 1-5-2Z"
-            fill="#e9eef7"
-          />
+        <g transform={`translate(${PLANE.x} ${PLANE.y}) rotate(${PLANE_ROT})`}>
+          <g className="arc-midway">
+            <path d={AIRCRAFT_GLYPH_D} fill="#e9eef7" transform="scale(0.8)" />
+          </g>
         </g>
 
         <text x="96" y="200" fill="#a9b7cd" fontSize="12" fontFamily="system-ui">

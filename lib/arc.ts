@@ -63,3 +63,75 @@ export function quadTangentDeg(q: Quadratic, t: number): number {
 export function noseUpRotationDeg(q: Quadratic, t: number): number {
   return quadTangentDeg(q, t) + 90;
 }
+
+/**
+ * The aircraft silhouette that rides the arc. Nose-up, centred on (0,0), and exactly
+ * mirror-symmetric about x = 0.
+ *
+ * It is here rather than inline in the component so its symmetry can be ASSERTED. The
+ * glyph it replaces was malformed in a way no amount of checking its position could
+ * catch: the right wing root sat at x=3 and the left at x=-5, the right tailplane at
+ * x=5 and the left at x=-7, so the entire left half was displaced 2 units outward and
+ * the fuselage centreline landed at x=-1 instead of 0. Measured: 15 of its 16 points
+ * had no mirror partner. Rotating a lopsided shape about its bounding-box centre —
+ * which is not its fuselage — is what made it read as broken however correctly it was
+ * placed on the curve.
+ *
+ * Points, nose first, clockwise: nose, right shoulder, right wingtip (leading then
+ * trailing), right wing root, rear fuselage, right tailplane, tail centre, then the
+ * mirror of all of it.
+ */
+export const AIRCRAFT_GLYPH_D = [
+  "M0 -14",
+  "L2.5 -5",
+  "L14 2",
+  "L14 4.5",
+  "L2.5 3.5",
+  "L2 9.5",
+  "L6 13",
+  "L6 14.5",
+  "L0 12.5",
+  "L-6 14.5",
+  "L-6 13",
+  "L-2 9.5",
+  "L-2.5 3.5",
+  "L-14 4.5",
+  "L-14 2",
+  "L-2.5 -5",
+  "Z",
+].join(" ");
+
+/**
+ * Extract the vertices of a straight-edged path (`M`/`L` only, absolute).
+ *
+ * Exists so the glyph above can be checked rather than trusted. Returns null if the
+ * path contains curves, relative commands or an odd number of coordinates, because a
+ * parser that quietly half-understands a path is how a broken shape passes a test.
+ */
+export function polygonPoints(d: string): Point[] | null {
+  // Whitelist, not blacklist. The first attempt stripped `MLZ` and then tested a
+  // LOWERCASE character class, so an uppercase `C` passed straight through and a cubic
+  // parsed as a polygon — the exact "quietly half-understands a path" failure this
+  // guard exists to prevent, and it took a test to notice.
+  const letters = d.match(/[a-zA-Z]/g) ?? [];
+  if (letters.some((c) => !"MLZ".includes(c))) return null;
+  const nums = d.match(/-?\d*\.?\d+/g);
+  if (!nums || nums.length < 6 || nums.length % 2 !== 0) return null;
+  const values = nums.map(Number);
+  if (values.some((n) => !Number.isFinite(n))) return null;
+  const pts: Point[] = [];
+  for (let i = 0; i < values.length; i += 2) pts.push({ x: values[i], y: values[i + 1] });
+  return pts;
+}
+
+/**
+ * Every off-axis vertex that has no partner at (-x, y). Empty means the shape is truly
+ * mirror-symmetric — the property the previous glyph lacked entirely.
+ */
+export function mirrorViolations(pts: Point[], epsilon = 0.001): Point[] {
+  return pts.filter(
+    (p) =>
+      Math.abs(p.x) > epsilon &&
+      !pts.some((q) => Math.abs(q.x + p.x) < epsilon && Math.abs(q.y - p.y) < epsilon),
+  );
+}
