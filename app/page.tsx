@@ -427,28 +427,8 @@ export default function Page() {
         These two sections exist because the header and footer link to them. A nav
         link pointing at an anchor that does not exist is a broken link, so the
         content is real rather than placeholder marketing.
-
-        They sit in a dark band that matches the hero, breaking the light form area
-        into a clear "your work" zone above and a "about the tool" zone below.
       */}
-      <div
-        className="mt-20 -mx-4 sm:-mx-6 px-4 sm:px-6 py-16 rounded-2xl"
-        style={{
-          background: '#0a1120',
-          color: '#e9eef7',
-          // Reset the light overrides that main applied, so semantic tokens
-          // inside this container resolve to the dark values again.
-          '--color-canvas': '#0a1120',
-          '--color-surface': '#111b2e',
-          '--color-ink': '#e9eef7',
-          '--color-ink-soft': '#a9b7cd',
-          '--color-ink-mute': '#77879f',
-          '--color-line': '#25324b',
-          '--color-primary': '#3b82f6',
-          '--color-secondary': '#7dd3fc',
-        } as React.CSSProperties}
-      >
-      <section id="how-it-works" className="scroll-mt-20">
+      <section id="how-it-works" className="mt-20 scroll-mt-20">
         <h2 className="font-[family-name:var(--font-display)] text-2xl font-semibold text-ink">
           How it works
         </h2>
@@ -523,7 +503,6 @@ export default function Page() {
           ))}
         </div>
       </section>
-      </div>
       </main>
     </>
   );

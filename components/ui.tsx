@@ -59,6 +59,8 @@ export const fieldClass =
   "mt-1.5 w-full min-h-11 rounded-lg border border-line bg-elevated px-3 py-2 text-sm " +
   "text-ink transition-colors duration-200 placeholder:text-ink-mute " +
   "hover:border-ink-mute focus:border-primary focus:outline-none " +
-"";
+  // Dark form controls need this or the native date/time pickers render a white
+  // widget with white-on-white glyphs in Chrome.
+  "[color-scheme:dark]";
 
 export const labelClass = "block text-xs font-semibold text-ink-soft";
