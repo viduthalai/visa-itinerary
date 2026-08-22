@@ -5,7 +5,9 @@ import {
   formatPassenger,
   emptyFare,
   generatePnr,
+  hasAnyPassenger,
   hasFare,
+  isNamed,
   type Passenger,
   passengerWarnings,
   warningsFor,
@@ -247,5 +249,60 @@ describe("hasFare", () => {
   it("is true as soon as any single field has content", () => {
     expect(hasFare({ ...emptyFare(), formOfPayment: "CREDIT CARD" })).toBe(true);
     expect(hasFare({ ...emptyFare(), calculation: "BLR EK X/DXB" })).toBe(true);
+  });
+});
+
+describe("hasAnyPassenger — the Document gate", () => {
+  const blank = (): Passenger => ({
+    id: "p1", surname: "", givenNames: "", title: "", passport: "", dob: "",
+  }) as Passenger;
+
+  it("is false for a single blank row (the default state)", () => {
+    expect(hasAnyPassenger([blank()])).toBe(false);
+  });
+
+  it("is false for many blank rows", () => {
+    expect(hasAnyPassenger([blank(), blank(), blank()])).toBe(false);
+  });
+
+  it("is false when the only input is whitespace", () => {
+    expect(hasAnyPassenger([{ ...blank(), surname: "   " }])).toBe(false);
+  });
+
+  it("is true on a surname alone", () => {
+    expect(hasAnyPassenger([{ ...blank(), surname: "SMITH" }])).toBe(true);
+  });
+
+  it("is true on given names alone, since a partial row is still an attempt", () => {
+    expect(hasAnyPassenger([{ ...blank(), givenNames: "JOHN" }])).toBe(true);
+  });
+
+  it("is true if ANY row is named, not only the first", () => {
+    expect(hasAnyPassenger([blank(), { ...blank(), surname: "SMITH" }])).toBe(true);
+  });
+
+  /*
+   * The regression this exists for: the gate and the warning must agree. Before isNamed
+   * was extracted, "what counts as a real passenger" was written out three times, so a
+   * state could exist where the warning said "No passenger name entered" while the gate
+   * had already opened the Document step.
+   */
+  it("agrees with passengerWarnings about what counts as named", () => {
+    const cases: Passenger[][] = [
+      [blank()],
+      [{ ...blank(), surname: "   " }],
+      [{ ...blank(), surname: "SMITH" }],
+      [{ ...blank(), givenNames: "JOHN" }],
+    ];
+    for (const ps of cases) {
+      const warnsNoName = passengerWarnings(ps).some(
+        (w) => w.text === "No passenger name entered."
+      );
+      expect(hasAnyPassenger(ps)).toBe(!warnsNoName);
+    }
+  });
+
+  it("isNamed treats a whitespace-only row as unnamed", () => {
+    expect(isNamed({ ...blank(), surname: " ", givenNames: "\t" })).toBe(false);
   });
 });

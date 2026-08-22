@@ -47,8 +47,16 @@
    * document's own deep wordmark red, which tightens the rhyme rather than
    * inventing a fourth red.
    */
-  --color-accent: #c93a30;
-  --color-accent-hover: #a32731;
+  /*
+   * One accent, one meaning: this is the document's colour.
+   *
+   * Deep red is the "confident warmth" direction (PPG's 2026 colour is Warm Mahogany),
+   * so the hue was never the problem -- the overload was. #8f2f28 sits with the
+   * document's own --color-doc-accent-deep rather than colliding with it, and the
+   * hover no longer duplicates a doc token byte-for-byte the way #a32731 did.
+   */
+  --color-accent: #8f2f28;
+  --color-accent-hover: #6f231e;
   --color-ink: #e9eef7;
   --color-ink-soft: #a9b7cd;
   --color-ink-mute: #77879f;
@@ -125,14 +133,25 @@ body {
  * value automatically, with no per-component branching.
  */
 .theme-light {
-  --color-canvas: #f8fafc;
-  --color-surface: #ffffff;
-  --color-elevated: #f8fafc;
-  --color-ink: #0f172a;
-  --color-ink-soft: #475569;
-  --color-ink-mute: #64748b;
-  --color-muted: #f1f5f9;
-  --color-line: #e2e8f0;
+  /*
+   * Warm, not cool. The document this app produces is warm paper -- its palette was
+   * sampled from a printed receipt (--color-doc-*). A cool-slate form zone made the
+   * document look like a foreign object embedded in a dashboard. These values sit in
+   * the same family as the document's own panel and edge tones, so the form reads as
+   * the same material as the thing it builds.
+   *
+   * Every pair below was re-measured after the change; see the contrast table in the
+   * commit message. Warming a neutral shifts its luminance, so the old ratios did not
+   * carry over and could not be assumed.
+   */
+  --color-canvas: #f1efe9;
+  --color-surface: #fbfaf7;
+  --color-elevated: #f5f2ec;
+  --color-ink: #1c1917;
+  --color-ink-soft: #4a443d;
+  --color-ink-mute: #6b6459;
+  --color-muted: #ebe7df;
+  --color-line: #ddd7cc;
   /*
    * Deep navy, not the shell's #3b82f6. That blue cannot carry white text at body
    * size — it measures 3.68:1 and fails AA — and on a dark canvas there was no
@@ -140,8 +159,17 @@ body {
    * fill-vs-surface contrast to 2.57:1 and fails SC 1.4.11 instead. On white,
    * #1e3a5f carries white at 11.50:1 with room to spare.
    */
-  --color-primary: #1e3a5f;
-  --color-primary-hover: #16304f;
+  /*
+   * Espresso, not navy, and deliberately NOT the accent red.
+   *
+   * The 2026 formula is a calm base plus ONE expressive accent used sparingly. Putting
+   * red on the primary CTA is what created the original defect: red then meant "do
+   * this", "danger", and "this is the document" simultaneously, across four values
+   * close enough to be indistinguishable. A near-black warm CTA is calm, carries the
+   * highest contrast in the palette, and leaves red free to mean exactly one thing.
+   */
+  --color-primary: #2a2320;
+  --color-primary-hover: #171310;
   /*
    * accent / accent-hover are deliberately NOT overridden here. Both themes want
    * the same red, and re-stating it was the bug: the light zone was still pinning
@@ -149,8 +177,15 @@ body {
    * long after @theme had been corrected to #c93a30. An override that repeats the
    * default is invisible until it silently stops matching it.
    */
+  /*
+   * Blue survives only as an interactive state (focus rings), not as a brand colour --
+   * it was previously three unrelated values across two zones pretending to be one
+   * token. Destructive is pulled away from the accent so the two reds are no longer
+   * neighbours: accent #8f2f28 vs destructive #b3261e is a visible step in both hue
+   * and lightness.
+   */
   --color-secondary: #2563eb;
-  --color-destructive: #dc2626;
+  --color-destructive: #b3261e;
   /* No inset light edge here: on a light surface that reads as a smudge. Depth
      comes from the shadow alone. */
   --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.04);

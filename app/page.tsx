@@ -25,6 +25,7 @@ import {
   type Segment,
   warningsFor,
   withReturnLeg,
+  hasAnyPassenger,
 } from "@/lib/itinerary";
 
 type SearchState =
@@ -243,7 +244,26 @@ export default function Page() {
    */
   const anyResults = searches.some((s) => s.status === "done");
   const searching = searches.some((s) => s.status === "loading");
-  const reachable = flightChosen ? STEPS.length : anyResults ? 2 : 1;
+  /*
+   * Reachability now has THREE gates, not two.
+   *
+   * It used to be `flightChosen ? STEPS.length : ...`, which unlocked steps 3, 4 and 5
+   * simultaneously the moment a flight was picked -- so the Document step, which is the
+   * whole deliverable, could be opened with no passenger entered and would render an
+   * empty itinerary as though it were finished. A UI that presents an empty document as
+   * a complete one is worse than one that refuses to show it.
+   *
+   * Step 4 (Passengers) stays reachable on flight choice -- you must be able to GET to
+   * the passenger form. Only step 5 waits for it to be filled.
+   */
+  const documentReady = hasAnyPassenger(itinerary.passengers);
+  const reachable = flightChosen
+    ? documentReady
+      ? STEPS.length
+      : STEPS.length - 1
+    : anyResults
+      ? 2
+      : 1;
 
   useEffect(() => {
     setStep((s) => Math.min(s, reachable));

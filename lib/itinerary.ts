@@ -257,17 +257,41 @@ export function newItinerary(): Itinerary {
   };
 }
 
+/**
+ * Has this row been filled in at all?
+ *
+ * Extracted because the same expression was already written twice inside
+ * passengerWarnings, and is now needed a third time by the step gate in page.tsx.
+ * Three copies of "what counts as a real passenger" is three chances for the gate to
+ * disagree with the warning it is supposed to enforce.
+ */
+export function isNamed(p: Passenger): boolean {
+  return Boolean(p.surname.trim() || p.givenNames.trim());
+}
+
+/**
+ * Can the document be shown yet?
+ *
+ * The document is the deliverable. Before this gate existed, choosing a flight made
+ * steps 3, 4 AND 5 reachable at once, so it was possible to walk straight from
+ * "Confirm flight" to "Document" and render the itinerary with no passenger on it --
+ * an empty document presented as a finished one.
+ */
+export function hasAnyPassenger(passengers: Passenger[]): boolean {
+  return passengers.some(isNamed);
+}
+
 /** Passenger-level checks. Non-blocking, same as the flight warnings. */
 export function passengerWarnings(passengers: Passenger[]): Warning[] {
   const out: Warning[] = [];
 
-  const named = passengers.filter((p) => p.surname.trim() || p.givenNames.trim());
+  const named = passengers.filter(isNamed);
   if (named.length === 0) {
     out.push({ segmentId: null, text: "No passenger name entered." });
   }
 
   passengers.forEach((p, i) => {
-    const hasSomething = p.surname.trim() || p.givenNames.trim();
+    const hasSomething = isNamed(p);
     if (hasSomething && !p.surname.trim()) {
       out.push({ segmentId: null, text: `Passenger ${i + 1} has no surname.` });
     }
