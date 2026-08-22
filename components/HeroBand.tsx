@@ -88,29 +88,44 @@ export function HeroBand({ reference }: { reference: string }) {
             went straight to statistics, leaving the reader to work out that the thing to
             do next was scroll to a form.
 
-            LABEL: deliberately NOT "Get ticket" or anything ticket-shaped. This product
-            generates an honestly-labelled itinerary document, and documentVoice.ts exists
-            specifically to keep every surface consistent about that. A CTA promising a
-            "ticket" would tell a visa applicant they are obtaining something they are
-            not -- the exact misrepresentation this app is built to avoid, and the one
-            claim carrying real legal exposure.
+            LABEL: the verb is the acquisition verb that was asked for; the NOUN is the
+            one this product can actually stand behind. "Get ticket" was rejected -- this
+            app generates an honestly-labelled itinerary document, documentVoice.ts exists
+            to keep every surface consistent about that, and a CTA promising a "ticket"
+            would tell a visa applicant they are obtaining something they are not. That is
+            the exact misrepresentation this app is built to avoid and the one claim
+            carrying real legal exposure. "Itinerary" is the honest noun: it is in the
+            product name, in the header, and is what the PDF actually is.
 
-            COLOUR: paper, not blue and not accent-red. On this dark hero the espresso
-            primary is invisible and the mahogany accent measures 2.27:1 -- below the 3:1
-            large-text floor. A warm off-white fill measures ~14:1 here, makes the CTA the
-            brightest object in the hero (which is what a primary action should be), and
-            reads as the paper the tool produces. It is an anchor rather than a button so
-            it still works with JS disabled and can be opened in a new tab.
+            If this is ever reworded, the constraint is on the noun, not the verb. Get /
+            Build / Start / Create are all fine. Ticket, booking, reservation, PNR and
+            confirmation are not.
+
+            COLOUR: the document red, via --color-accent-on-dark.
+
+            This makes the colour system say something consistent: red marks the actions
+            that PRODUCE the document (this CTA, Save as PDF) and the document itself.
+            Espresso stays on neutral progression (Search, Continue, Back). So red means
+            one thing in two places rather than three things in four values, which was
+            the original defect.
+
+            Not the base accent #8f2f28 -- that is tuned for warm paper and measures
+            2.34:1 here, under the 3:1 non-text floor. Not paper either: a near-white
+            fill measured 16.4:1 but read as a secondary/ghost button rather than the
+            primary action.
+
+            It is an anchor rather than a button so it still works with JS disabled and
+            can be opened in a new tab.
           */}
           <a
             href="#main"
             className="mt-7 inline-flex min-h-11 cursor-pointer items-center justify-center gap-2
-                       rounded-lg bg-[#f1efe9] px-5 py-2.5 text-sm font-semibold text-[#2a2320]
-                       transition-colors duration-200 hover:bg-[#fbfaf7]
+                       rounded-lg bg-accent-on-dark px-5 py-2.5 text-sm font-semibold text-white
+                       transition-colors duration-200 hover:bg-accent-on-dark-hover
                        focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
-                       focus-visible:outline-[#f1efe9]"
+                       focus-visible:outline-accent-on-dark"
           >
-            Build my itinerary
+            Get my itinerary
             <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" fill="none">
               <path
                 d="M2 7h9M7.5 3.5 11 7l-3.5 3.5"

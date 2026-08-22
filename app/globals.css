@@ -57,6 +57,19 @@
    */
   --color-accent: #8f2f28;
   --color-accent-hover: #6f231e;
+  /*
+   * The accent needs a lighter twin for dark surfaces, and this is a real semantic
+   * pair rather than a repeat of the old overload -- both values mean the same ONE
+   * thing (an action that produces the document), they just target different grounds.
+   *
+   * #8f2f28 is tuned for warm paper and measures only 2.34:1 on the hero, under the
+   * 3:1 non-text floor. The passing band on #0a1120 is narrow: white-on-fill needs
+   * >=4.5:1 which caps lightness, fill-vs-hero needs >=3:1 which floors it, leaving
+   * roughly #b8362c..#d24236. #c9382e sits mid-band with headroom both ways
+   * (3.67:1 fill, 5.14:1 label).
+   */
+  --color-accent-on-dark: #c9382e;
+  --color-accent-on-dark-hover: #b32d24;
   --color-ink: #e9eef7;
   --color-ink-soft: #a9b7cd;
   --color-ink-mute: #77879f;
