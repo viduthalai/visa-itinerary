@@ -9,6 +9,7 @@ import { PassengerFields } from "@/components/PassengerFields";
 import { StepProgress, type StepDef } from "@/components/StepProgress";
 import { HeroBand } from "@/components/HeroBand";
 import { Button, Card } from "@/components/ui";
+import { FAQ_ITEMS } from "@/lib/content";
 import { getAirport } from "@/lib/airports";
 import { toPickedFlight } from "@/lib/flightPick";
 import type { FlightResult, SearchResponse } from "@/lib/flightSearch";
@@ -593,28 +594,30 @@ export default function Page() {
       </section>
 
       <section id="faq" className="mt-16 scroll-mt-20">
+        {/*
+          FAQPage structured data, built from the SAME array the list renders
+          below. Google requires the schema to match the visible answers exactly;
+          reading both from FAQ_ITEMS is what guarantees that (see lib/content.ts).
+        */}
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{
+            __html: JSON.stringify({
+              "@context": "https://schema.org",
+              "@type": "FAQPage",
+              mainEntity: FAQ_ITEMS.map((f) => ({
+                "@type": "Question",
+                name: f.q,
+                acceptedAnswer: { "@type": "Answer", text: f.a },
+              })),
+            }),
+          }}
+        />
         <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-ink">
           FAQ
         </h2>
         <div className="mt-5 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface shadow-[var(--shadow-card)]">
-          {[
-            {
-              q: "Is this a booking?",
-              a: "No. It builds a document from details you enter. Nothing is reserved with any airline and no payment is taken.",
-            },
-            {
-              q: "Where does my data go?",
-              a: "Nowhere. Everything stays in your browser — there is no account and no database. Closing the tab discards it.",
-            },
-            {
-              q: "Are the flight times real?",
-              a: "Times come from the flight search where a provider is configured, and are recalculated in each airport's own timezone. Without a provider token the search returns clearly-labelled sample data.",
-            },
-            {
-              q: "Why is the reference number 6 characters?",
-              a: "It matches the shape airlines use. It is generated locally and resolves nowhere, so treat it as a document number rather than something anyone can look up.",
-            },
-          ].map((f) => (
+          {FAQ_ITEMS.map((f) => (
             <details key={f.q} className="group">
               <summary className="flex cursor-pointer items-center justify-between gap-4 px-5 py-4 text-sm font-medium text-ink transition-colors duration-200 hover:bg-muted">
                 {f.q}
