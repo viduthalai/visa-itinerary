@@ -135,11 +135,63 @@ npm test
 Logic is covered by unit tests in `lib/` — timezone boundaries, the itinerary
 model, duration math, and the arc geometry for the hero artwork.
 
+## Roadmap & pending features
+
+Known gaps and things worth building next — a starting point if you'd like to
+contribute. Items tagged **`good first issue`** are self-contained and don't
+need deep context. Open an issue before starting anything larger so we can agree
+on the approach.
+
+### Functionality
+
+- **End-to-end live flight search.** The sample provider currently returns the
+  same flight for every route (so `BLR → DXB` shows the wrong carrier and a
+  return leg can point the wrong way). Wire the Travelpayouts provider through so
+  results are real per-route. _(medium)_
+- **Multi-city itineraries** — support more than two legs. _(medium–large)_
+- **Save / load a draft** — export the itinerary to JSON and re-import it, so a
+  half-built document survives a closed tab. _(medium)_
+- **Internationalisation (i18n)** of the UI copy. _(large)_
+
+### Quality & tests
+
+- **Component tests for `ItineraryDocument`** — the deliverable has none; every
+  test today lives in `lib/`. This is the highest-value test gap. **`good first issue`**
+- **Block Search on a typed past date** — a past date is flagged (`rangeUnderflow`)
+  but not actually blocked from searching. **`good first issue`**
+
+### Accessibility & UI polish
+
+- **Footer heading levels** — the footer uses `<h2>`s that compete with real page
+  sections in the document outline; demote them. **`good first issue`**
+- **Step-2 results hierarchy** — eight undifferentiated columns with no headers;
+  add labels so price and duration are scannable. _(small)_
+- **Stepper affordance** — completed steps are clickable but give no visual hint. _(small)_
+- **Mobile layout for step 2** — the results row overflows a 375px viewport
+  (the app is desktop-first today). _(medium)_
+
+### Design-system follow-ups
+
+- **Separate destructive red from the accent red** — `#b3261e` and `#c9382e` sit
+  ~1.27:1 apart. Fine today (they never co-occur), but a destructive action on a
+  dark surface would force one to move. _(small)_
+- **Glass header over the warm zone** reads muddy where the backdrop blur picks up
+  the warm paper. _(small, cosmetic)_
+
+### Before real-world use (research, not code)
+
+- **Consulate acceptance.** The open product question: do target consulates accept
+  a self-generated itinerary document, or do they require a verifiable
+  reservation? This gates any real use and needs primary sources, not vendor
+  marketing.
+
 ## Contributing
 
-Issues and pull requests are welcome. Please run `npm run typecheck` and
-`npm test` before opening a PR, and keep the honest-document premise intact:
-the tool must never present itself as issuing a real ticket or reservation.
+Issues and pull requests are welcome — start with **[CONTRIBUTING.md](./CONTRIBUTING.md)**
+for setup, conventions, and the PR checklist. In short: run `npm run typecheck`,
+`npm test`, and `npm run build` before opening a PR, add tests for new logic, and
+keep the honest-document premise intact — the tool must never present itself as
+issuing a real ticket, booking, or reservation.
 
 ## License
 

@@ -1,0 +1,6 @@
+# Force contributors through the two structured templates rather than a blank box.
+blank_issues_enabled: false
+contact_links:
+  - name: Question or discussion
+    url: https://github.com/viduthalai/visa-itinerary/discussions
+    about: Ask a question or discuss an idea before filing an issue.

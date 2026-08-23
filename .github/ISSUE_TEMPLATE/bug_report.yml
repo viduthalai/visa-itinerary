@@ -1,0 +1,70 @@
+name: Bug report
+description: Something is wrong or behaves unexpectedly
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Timezone and flight-time bugs are almost always
+        specific to a particular route and date — if that's what you're seeing,
+        the exact airports and dates below are the most useful thing you can give us.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: A clear description of the bug, and what you expected instead.
+      placeholder: |
+        The arrival time on the PDF shows … but I expected …
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: The exact path to trigger it.
+      placeholder: |
+        1. Route: BLR → DXB, depart 2026-09-01
+        2. Choose the first result
+        3. Save as PDF
+        4. See the arrival time is …
+    validations:
+      required: true
+  - type: input
+    id: route
+    attributes:
+      label: Route and dates (if relevant)
+      description: Origin, destination, and the departure/return dates involved.
+      placeholder: "BLR → DXB, 2026-09-01 (one-way)"
+  - type: dropdown
+    id: data-source
+    attributes:
+      label: Flight data source
+      description: Was a Travelpayouts token configured, or was this sample data?
+      options:
+        - Sample data (no token)
+        - Live search (TRAVELPAYOUTS_TOKEN set)
+        - Not sure
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Browser / OS
+      placeholder: "Chrome 140 on macOS 15 / Safari on iOS 18"
+    validations:
+      required: true
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where were you running it?
+      options:
+        - Local dev (npm run dev)
+        - A deployed build
+    validations:
+      required: true
+  - type: textarea
+    id: console
+    attributes:
+      label: Console errors / screenshots
+      description: Any errors from the browser console, or a screenshot. Optional.
+      render: shell

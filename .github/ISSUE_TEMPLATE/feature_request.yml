@@ -1,0 +1,37 @@
+name: Feature request
+description: Suggest an improvement or new capability
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        One guardrail up front: this tool builds an honestly-labelled *itinerary
+        document*. It will not add anything that presents itself as a real ticket,
+        booking, reservation, or PNR. Proposals within that boundary are very welcome.
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem does this solve?
+      description: The user need or pain point — not the solution yet.
+      placeholder: "When I do X, I can't … because …"
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you'd like to see happen.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you thought about, and why this one is better.
+  - type: checkboxes
+    id: premise
+    attributes:
+      label: Honest-document premise
+      options:
+        - label: This request does not make the tool present itself as a real ticket, booking, or reservation.
+          required: true
