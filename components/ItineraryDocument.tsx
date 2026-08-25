@@ -148,7 +148,7 @@ export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
             <p>
               Check with your departure airport for restrictions on the carriage of liquids,
               aerosols and gels in hand baggage, and check the visa requirements for every
-              country on your route — including any you only transit.
+              country on your route, including any you only transit.
             </p>
             <p>
               Some items are restricted or forbidden on board, including spare lithium
@@ -266,7 +266,7 @@ export function ItineraryDocument({ itinerary }: { itinerary: Itinerary }) {
             Restricted and dangerous goods
           </h2>
           <p className="mt-2 text-[8.5px] leading-relaxed text-doc-ink">
-            Carrying certain hazardous materials — aerosols, fireworks, flammable liquids —
+            Carrying certain hazardous materials (aerosols, fireworks, flammable liquids)
             is forbidden on board. Personal motorised vehicles such as hoverboards and
             self-balancing wheels are generally refused as both checked and cabin baggage
             because of their lithium batteries. Where a restriction is unclear, ask the

@@ -37,6 +37,6 @@ describe("airport records", () => {
   });
 
   it("formats with code, name and city", () => {
-    expect(formatAirport(getAirport("MUC")!)).toBe("MUC — Munich Airport, Munich");
+    expect(formatAirport(getAirport("MUC")!)).toBe("MUC - Munich Airport, Munich");
   });
 });

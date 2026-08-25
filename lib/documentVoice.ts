@@ -65,7 +65,7 @@ const VOICES: Record<DocumentPosture, Voice> = {
       "reference, not an airline ticket number.",
     noticeLeft: [
       "This document sets out the intended journey listed below. It is a travel plan " +
-        "prepared for your own records — it is not a reservation and confers no " +
+        "prepared for your own records. It is not a reservation and confers no " +
         "entitlement to travel.",
       "You may be asked to show a travel plan at the airport or when applying for a " +
         "visa. Keep it with your travel documents.",

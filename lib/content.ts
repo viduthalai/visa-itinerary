@@ -19,7 +19,7 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "Where does my data go?",
-    a: "Nowhere. Everything stays in your browser — there is no account and no database. Closing the tab discards it.",
+    a: "Nowhere. Everything stays in your browser: there is no account and no database. Closing the tab discards it.",
   },
   {
     q: "Are the flight times real?",

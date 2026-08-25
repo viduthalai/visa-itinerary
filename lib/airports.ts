@@ -21,9 +21,9 @@ export function getAirport(iata: string | null | undefined): Airport | undefined
   return BY_IATA.get(iata.toUpperCase());
 }
 
-/** `JFK — John F. Kennedy International Airport, New York` */
+/** `JFK - John F. Kennedy International Airport, New York` */
 export function formatAirport(a: Airport): string {
-  return a.city ? `${a.iata} — ${a.name}, ${a.city}` : `${a.iata} — ${a.name}`;
+  return a.city ? `${a.iata} - ${a.name}, ${a.city}` : `${a.iata} - ${a.name}`;
 }
 
 /**

@@ -116,7 +116,7 @@ function searchMock(q: SearchQuery): SearchResponse {
       departureAt: `${q.date}T${time}:00`,
     })),
     source: "mock",
-    note: "Sample data — no TRAVELPAYOUTS_TOKEN is configured, so this is not a live lookup.",
+    note: "Sample data. No TRAVELPAYOUTS_TOKEN is configured, so this is not a live lookup.",
   };
 }
 

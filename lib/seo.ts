@@ -21,7 +21,7 @@ export const SITE_TAGLINE = "Build a travel itinerary document that gets the tim
 
 export const SITE_DESCRIPTION =
   "Build a clean, timezone-correct travel itinerary document and save it as a PDF. " +
-  "Search a route, choose your flights, add passengers — everything runs in your " +
+  "Search a route, choose your flights, add passengers. Everything runs in your " +
   "browser with no account and no database.";
 
 export const AUTHOR_NAME = "Viduthalai Mani";

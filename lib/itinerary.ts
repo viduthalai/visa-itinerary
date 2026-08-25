@@ -369,7 +369,7 @@ export function warningsFor(segments: Segment[]): Warning[] {
       if (d.durationMinutes < 0) {
         out.push({ segmentId: s.id, text: "Arrives before it departs." });
       } else if (d.durationMinutes < 20) {
-        out.push({ segmentId: s.id, text: "Under 20 minutes — check the times and timezones." });
+        out.push({ segmentId: s.id, text: "Under 20 minutes. Check the times and timezones." });
       } else if (d.durationMinutes > 24 * 60) {
         out.push({ segmentId: s.id, text: "Over 24 hours for a single flight." });
       }
