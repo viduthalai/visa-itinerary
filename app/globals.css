@@ -9,8 +9,11 @@
    * ────────────────────────────────────────────────────────────────────────────
    * APP palette — the product chrome.
    *
-   * From the ui-ux-pro-max design system (Soft UI Evolution / "navy professional"),
-   * persisted at design-system/visa-itinerary/MASTER.md.
+   * Recorded in design-system/visa-itinerary/MASTER.md, which is an as-built record
+   * of these values rather than a generator recommendation. It previously described
+   * the superseded "Soft UI Evolution / navy professional" output, including a green
+   * CTA this app has never had, so a reader who trusted it was misled about the
+   * palette they were looking at. If you change a token here, change it there.
    *
    * This namespace is SEPARATE from --color-doc-* below and must stay that way.
    * The app palette is a brand choice and can be restyled freely; the document
@@ -29,57 +32,96 @@
    * light. Never pure #000: it smears on OLED and kills the sense of depth that the
    * elevation steps below rely on.
    */
-  --color-canvas: #0a1120;
-  --color-surface: #111b2e;
-  --color-elevated: #16223a;
-  --color-primary: #3b82f6;
-  --color-primary-hover: #2f6fe0;
+  /*
+   * TEMPLATE: stark monochrome shell, ONE saturated accent.
+   *
+   * Replaces the soft navy ("navy professional") shell. The navy was a tinted
+   * mid-dark that made every surface read as the same slightly-blue card; the
+   * near-neutrals below are colder and further apart, so elevation now comes from
+   * real steps rather than from a hue. Never pure #000 (smears on OLED, kills the
+   * elevation ramp).
+   *
+   * Every ratio quoted in this file was RE-MEASURED in the browser after the
+   * repaint, not carried over. The old numbers described the old palette.
+   */
+  --color-canvas: #0b0b0d;
+  --color-surface: #16161a;
+  --color-elevated: #1e1e23;
+  /*
+   * Primary is now a NEUTRAL, not a blue. It carries the neutral progression
+   * (Search, Continue, Back) and must not compete with the accent. #3f3f46
+   * carries white at 9.85:1 and sits at 3.42:1 against the canvas, so it passes
+   * SC 1.4.3 for its label and SC 1.4.11 as a control.
+   */
+  --color-primary: #3f3f46;
+  --color-primary-hover: #52525b;
   --color-on-primary: #ffffff;
-  --color-secondary: #7dd3fc;
+  --color-secondary: #60a5fa;
   /*
-   * Warm accent, chosen to rhyme with the document's own #CB3333 title red so the
-   * tool and its output read as one product.
+   * THE one accent: electric blue, replacing the brick red.
    *
-   * This drives the "Save as PDF" button — the app's single most important action.
-   * It was #e14b3f, which carries white at only 3.98:1 and fails AA. #c93a30 gives
-   * 5.08:1 and still holds 3.39:1 against the dark surface, so it satisfies both
-   * SC 1.4.3 (text) and SC 1.4.11 (non-text) in either zone. The hover is the
-   * document's own deep wordmark red, which tightens the rhyme rather than
-   * inventing a fourth red.
+   * It drives the "Save as PDF" button and the hero CTA, the two actions that
+   * produce the document. One accent, one meaning: the neutral progression
+   * (Search, Continue, Back) uses --color-primary and must never borrow this.
+   *
+   * The red was chosen to rhyme with the document's #cb3333 title band. On a
+   * monochrome shell that rhyme now works AGAINST the design: it made the page a
+   * washed-out echo of its own output. Cold shell, warm artefact is the stronger
+   * pairing, and it gives the document somewhere to stand out rather than blend.
+   *
+   * Deliberately NOT applied to the document. --color-doc-* is sampled from a
+   * printed receipt and stays red; changing it would make the deliverable wrong
+   * rather than merely different.
    */
+  --color-accent: #1d4ed8;
+  --color-accent-hover: #1a43b8;
   /*
-   * One accent, one meaning: this is the document's colour.
-   *
-   * Deep red is the "confident warmth" direction (PPG's 2026 colour is Warm Mahogany),
-   * so the hue was never the problem -- the overload was. #8f2f28 sits with the
-   * document's own --color-doc-accent-deep rather than colliding with it, and the
-   * hover no longer duplicates a doc token byte-for-byte the way #a32731 did.
+   * The accent's twin for dark grounds. Same ONE meaning (an action that produces
+   * the document), different ground. #1d4ed8 is tuned for white paper and measures
+   * only 2.19:1 on the new canvas, under the 3:1 non-text floor. #2563eb holds
+   * white at 5.17:1 AND sits at 3.68:1 against #0b0b0d, so it clears both floors
+   * with the label staying white. Keeping the label white is what let this repaint
+   * happen without touching a single call site.
    */
-  --color-accent: #8f2f28;
-  --color-accent-hover: #6f231e;
-  /*
-   * The accent needs a lighter twin for dark surfaces, and this is a real semantic
-   * pair rather than a repeat of the old overload -- both values mean the same ONE
-   * thing (an action that produces the document), they just target different grounds.
-   *
-   * #8f2f28 is tuned for warm paper and measures only 2.34:1 on the hero, under the
-   * 3:1 non-text floor. The passing band on #0a1120 is narrow: white-on-fill needs
-   * >=4.5:1 which caps lightness, fill-vs-hero needs >=3:1 which floors it, leaving
-   * roughly #b8362c..#d24236. #c9382e sits mid-band with headroom both ways
-   * (3.67:1 fill, 5.14:1 label).
-   */
-  --color-accent-on-dark: #c9382e;
-  --color-accent-on-dark-hover: #b32d24;
-  --color-ink: #e9eef7;
-  --color-ink-soft: #a9b7cd;
-  --color-ink-mute: #77879f;
-  --color-muted: #1a2941;
-  --color-line: #25324b;
+  --color-accent-on-dark: #2563eb;
+  --color-accent-on-dark-hover: #1d4ed8;
+  /* Neutral ink ramp, no blue tint. */
+  --color-ink: #fafafa;
+  --color-ink-soft: #a1a1aa;
+  --color-ink-mute: #7c7c86;
+  --color-muted: #1e1e23;
+  --color-line: #2b2b32;
   --color-destructive: #f87171;
 
-  /* Soft UI Evolution: softer than flat, clearer than neumorphism. */
-  /* Depth on a dark canvas comes from a light top edge plus a deep shadow — a
-     shadow alone is nearly invisible against #0a1120. */
+  /*
+   * Notice / warning. A SEMANTIC STATE token, not a second accent.
+   *
+   * The Colour Consistency Lock says one accent per page, and this does not break
+   * it: --color-accent means "this action produces the document" and nothing else,
+   * while these three mean "the app has something to tell you about your data".
+   * --color-destructive already establishes that state colours are a separate class
+   * from brand colours; notice is the same class, one severity down.
+   *
+   * These exist because four call sites were painting `bg-amber-50 text-amber-900`
+   * as raw Tailwind utilities. Those bypass @theme entirely, so the monochrome
+   * repaint could not reach them and they kept rendering the previous warm-paper
+   * build's amber on a cool neutral page. A token is the only way a future repaint
+   * finds them.
+   *
+   * Both zones are defined even though every current notice renders in the light
+   * form zone. A token that only works in one zone is a trap for the first person
+   * who reuses it.
+   *
+   * Measured, dark zone: #fcd34d on #2a2011 = 11.09:1.
+   */
+  --color-notice-surface: #2a2011;
+  --color-notice-line: #5c4415;
+  --color-notice-ink: #fcd34d;
+
+  /* Depth on a near-black canvas comes from a light top edge plus a deep shadow.
+     A shadow alone is nearly invisible against #0b0b0d, and more so than it was
+     against the old navy: the darker the ground, the more the inset edge is doing
+     the work. */
   --shadow-card: 0 1px 0 rgba(255, 255, 255, 0.05) inset, 0 2px 8px rgba(0, 0, 0, 0.35);
   --shadow-lift: 0 1px 0 rgba(255, 255, 255, 0.07) inset, 0 8px 32px rgba(0, 0, 0, 0.5);
   --shadow-paper: 0 24px 60px rgba(0, 0, 0, 0.55), 0 2px 8px rgba(0, 0, 0, 0.4);
@@ -157,48 +199,63 @@ body {
    * commit message. Warming a neutral shifts its luminance, so the old ratios did not
    * carry over and could not be assumed.
    */
-  --color-canvas: #f1efe9;
-  --color-surface: #fbfaf7;
-  --color-elevated: #f5f2ec;
-  --color-ink: #1c1917;
-  --color-ink-soft: #4a443d;
-  --color-ink-mute: #6b6459;
-  --color-muted: #ebe7df;
-  --color-line: #ddd7cc;
   /*
-   * Deep navy, not the shell's #3b82f6. That blue cannot carry white text at body
-   * size — it measures 3.68:1 and fails AA — and on a dark canvas there was no
-   * clean fix: darkening it to pass the text check drops the button's own
-   * fill-vs-surface contrast to 2.57:1 and fails SC 1.4.11 instead. On white,
-   * #1e3a5f carries white at 11.50:1 with room to spare.
-   */
-  /*
-   * Espresso, not navy, and deliberately NOT the accent red.
+   * Neutral, not warm. The warm paper tones existed to make the form read as the
+   * same material as the document. Under the monochrome shell that goal inverts:
+   * the page is now one cold neutral system end to end, and the warm receipt
+   * becomes the single warm object on it. That is the whole point of the template
+   * change, so the form zone follows the shell rather than the artefact.
    *
-   * The 2026 formula is a calm base plus ONE expressive accent used sparingly. Putting
-   * red on the primary CTA is what created the original defect: red then meant "do
-   * this", "danger", and "this is the document" simultaneously, across four values
-   * close enough to be indistinguishable. A near-black warm CTA is calm, carries the
-   * highest contrast in the palette, and leaves red free to mean exactly one thing.
+   * Still LIGHT, deliberately. The zone is light because extended data entry on a
+   * dark ground causes eye strain, and a uniform-dark build was tried and reverted
+   * (2d1050e). That ergonomic reason survives a repaint; only the hue changed.
    */
-  --color-primary: #2a2320;
-  --color-primary-hover: #171310;
+  --color-canvas: #f4f4f5;
+  --color-surface: #ffffff;
+  --color-elevated: #fafafa;
+  --color-ink: #18181b;
+  --color-ink-soft: #3f3f46;
+  --color-ink-mute: #63636d;
+  --color-muted: #ececee;
+  --color-line: #d9d9de;
   /*
-   * accent / accent-hover are deliberately NOT overridden here. Both themes want
-   * the same red, and re-stating it was the bug: the light zone was still pinning
-   * the old #e14b3f (white at 3.98:1, an AA failure on the "Save as PDF" button)
-   * long after @theme had been corrected to #c93a30. An override that repeats the
-   * default is invisible until it silently stops matching it.
+   * Near-black neutral, carrying the neutral progression on white. It is the
+   * highest-contrast value available here and it deliberately is NOT the accent:
+   * the accent means "this produces the document" and nothing else, so a Continue
+   * button must not borrow it.
    */
+  --color-primary: #18181b;
+  --color-primary-hover: #000000;
   /*
-   * Blue survives only as an interactive state (focus rings), not as a brand colour --
-   * it was previously three unrelated values across two zones pretending to be one
-   * token. Destructive is pulled away from the accent so the two reds are no longer
-   * neighbours: accent #8f2f28 vs destructive #b3261e is a visible step in both hue
-   * and lightness.
+   * accent / accent-hover are deliberately NOT overridden in this zone. Both zones
+   * want the same blue, and re-stating a value here is how the previous palette
+   * drifted: the light zone kept pinning a superseded accent long after @theme had
+   * moved on. An override that merely repeats the default is invisible until it
+   * silently stops matching it.
+   *
+   * Destructive stays red and is now unambiguous: with a blue accent there is no
+   * longer a second red on the page to confuse it with, which is a real gain from
+   * this repaint rather than a side effect.
    */
   --color-secondary: #2563eb;
   --color-destructive: #b3261e;
+  /*
+   * Notice, light zone. Every notice currently renders here (both call sites live
+   * inside the form area), so these are the values that actually paint.
+   *
+   * Measured: #713f12 on #fffbeb = 8.36:1, comfortably past AA for body text.
+   *
+   * The 1px edge is #c8912f, measured at 2.68:1 against the notice surface it
+   * actually sits on (not against white, which is a different and slightly kinder
+   * number). Under 3:1, and that is deliberate rather than an oversight: amber
+   * cannot reach 3:1 on a pale amber ground while still reading as amber. It does
+   * not need to. This is a decorative panel edge, not a control boundary, and the
+   * panel's meaning is carried by its heading text plus body ink at 8.36:1. The
+   * value it replaces (`amber-500/40`) was considerably fainter.
+   */
+  --color-notice-surface: #fffbeb;
+  --color-notice-line: #c8912f;
+  --color-notice-ink: #713f12;
   /* No inset light edge here: on a light surface that reads as a smudge. Depth
      comes from the shadow alone. */
   --shadow-card: 0 1px 3px rgba(15, 23, 42, 0.06), 0 4px 16px rgba(15, 23, 42, 0.04);
@@ -421,7 +478,9 @@ input[type="time"][data-empty="true"] {
   height: 30rem;
   top: -12rem;
   left: -8rem;
-  background: radial-gradient(circle, rgba(59, 130, 246, 0.55), transparent 68%);
+  /* The single accent, dimmed. Was 0.55 against a navy ground; on a near-black
+     canvas the same alpha reads as a blue haze over the whole hero. */
+  background: radial-gradient(circle, rgba(37, 99, 235, 0.38), transparent 68%);
   animation: drift-a 22s ease-in-out infinite alternate;
 }
 
@@ -430,7 +489,11 @@ input[type="time"][data-empty="true"] {
   height: 26rem;
   right: -6rem;
   bottom: -14rem;
-  background: radial-gradient(circle, rgba(225, 75, 63, 0.4), transparent 68%);
+  /* Cold neutral, NOT a second accent. This was a red wash rhyming with the old
+     brick accent; keeping a red glow under a blue-accented monochrome page would
+     put two accents on one screen, which is the colour-consistency rule this
+     template change exists to satisfy. */
+  background: radial-gradient(circle, rgba(200, 205, 215, 0.16), transparent 70%);
   animation: drift-b 26s ease-in-out infinite alternate;
 }
 
@@ -454,12 +517,18 @@ input[type="time"][data-empty="true"] {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='40' height='40'%3E%3Cpath d='M40 0H0v40' fill='none' stroke='rgba(255,255,255,0.045)' stroke-width='1'/%3E%3C/svg%3E");
 }
 
-/* Frosted panel — the glassmorphism layer, used for the header and hero cards. */
-.glass {
-  background: rgba(17, 27, 46, 0.72);
-  backdrop-filter: blur(12px) saturate(140%);
-  -webkit-backdrop-filter: blur(12px) saturate(140%);
-}
+/*
+ * `.glass` was here. Removed rather than left behind: the site header was its only
+ * consumer, and the header is now a solid bar.
+ *
+ * It was a 72%-opaque fill plus a 12px backdrop blur, and its own comment recorded
+ * that the alpha came from the superseded navy build. Frosted glass belongs to
+ * premium-consumer and media-overlay surfaces; this is a trust-first document tool
+ * whose work surface is now a flat Swiss grid, so the material was arguing against
+ * the rest of the page. Dropping it also drops a `backdrop-filter` on a sticky
+ * element, which is a per-frame composite for the whole strip while scrolling, and
+ * removes the need for a `prefers-reduced-transparency` fallback that never existed.
+ */
 
 /*
  * Printing produces the PDF — there is no separate PDF template, so the preview

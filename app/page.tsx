@@ -1,6 +1,13 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  CaretDown,
+  DownloadSimple,
+  FileText,
+  ListChecks,
+  Path,
+} from "@phosphor-icons/react";
 import { FlightDetails, RouteFields } from "@/components/FlightDetails";
 import { FlightResults } from "@/components/FlightResults";
 import { FareFields } from "@/components/FareFields";
@@ -8,7 +15,8 @@ import { ItineraryDocument } from "@/components/ItineraryDocument";
 import { PassengerFields } from "@/components/PassengerFields";
 import { StepProgress, type StepDef } from "@/components/StepProgress";
 import { HeroBand } from "@/components/HeroBand";
-import { Button, Card } from "@/components/ui";
+import { Reveal } from "@/components/Reveal";
+import { Button, Panel } from "@/components/ui";
 import { FAQ_ITEMS } from "@/lib/content";
 import { getAirport } from "@/lib/airports";
 import { toPickedFlight } from "@/lib/flightPick";
@@ -305,13 +313,23 @@ export default function Page() {
         max-width on `main` is what forced the explainer band to fake full-bleed
         with negative margins, which is why its rounded corners landed in mid-air.
       */}
-      <main id="main">
+      {/*
+        `scroll-mt-20` matches #how-it-works and #faq, which both already carry it.
+        Without it this anchor had scroll-margin-top: 0 against a 65px sticky header,
+        so both controls that target it — the hero's "Get my itinerary" CTA and the
+        skip link, which is the FIRST tab stop on the page — parked the stepper
+        underneath the header and hid step 1 behind the wordmark.
+
+        Worth recording how this was found: every measurement passed. The grid
+        resolved to exact 12-column tracks, one radius, spacing all on the 8px scale.
+        The overlap only appeared in a screenshot, because the fault was not in any
+        element's own geometry but in where the viewport came to rest relative to it.
+      */}
+      <main id="main" className="scroll-mt-20">
       {/* ── Light zone: the work surface ───────────────────────────────────── */}
       <div className="theme-light">
-      <div className="mx-auto max-w-5xl px-4 pb-16 pt-10 sm:px-6">
-      <div className="mt-8">
-        <StepProgress steps={STEPS} current={step} reachable={reachable} onJump={setStep} />
-      </div>
+      <div className="mx-auto max-w-5xl px-4 pb-16 pt-8 sm:px-6">
+      <StepProgress steps={STEPS} current={step} reachable={reachable} onJump={setStep} />
 
       {/*
         The only announcement a screen-reader user gets for the primary action.
@@ -333,19 +351,22 @@ export default function Page() {
           animation — a step change should read as a change, not a silent repaint.
           The class is directional so the motion says WHICH way you moved. */}
       <div key={step} className={`mt-8 step-panel-${nav.dir}`}>
-        <h2 className="mb-3 font-[family-name:var(--font-display)] text-xl font-semibold text-ink">
+        {/* The step title is the page's second-level heading and sits ABOVE the
+            panel hairline, so the rule reads as underlining the title rather than
+            as a stray divider. */}
+        <h2 className="mb-4 font-[family-name:var(--font-display)] text-2xl font-semibold text-ink">
           {STEPS[step - 1].title}
         </h2>
 
         {step === 1 && (
-          <Card>
+          <Panel>
             <RouteFields
               segment={segment}
               onChange={patchRoute}
               returnDate={returnDate}
               onReturnDateChange={setReturnDate}
             />
-            <div className="mt-4 flex flex-wrap items-center gap-3">
+            <div className="mt-6 flex flex-wrap items-center gap-4">
               <Button type="button" onClick={runSearch} disabled={!canSearch || searching}>
                 {searching ? "Searching…" : returnDate ? "Search both flights" : "Search flights"}
               </Button>
@@ -360,11 +381,11 @@ export default function Page() {
                 onClick={() => setStep(3)}
                 disabled={!canSearch}
               >
-                Skip search — enter flights manually
+                Skip search, enter flights manually
               </Button>
             </div>
             {!canSearch && (
-              <p className="mt-3 text-xs text-ink-mute">
+              <p className="mt-4 text-xs text-ink-mute">
                 Pick two different airports and a departure date to search.
               </p>
             )}
@@ -382,24 +403,27 @@ export default function Page() {
               st.status === "error" ? (
                 <p
                   key={`err-${i}`}
-                  className="mt-3 rounded-lg border border-destructive/25 bg-destructive/5 px-3 py-2 text-xs text-destructive"
+                  /* Square, and a solid left rule instead of a 25%-alpha box: the
+                     same "marked from the margin" language the chosen result row and
+                     the stepper use, so severity reads without a second shape. */
+                  className="mt-4 border-l-2 border-l-destructive bg-muted px-4 py-2 text-xs text-destructive"
                 >
                   {legLabel(itinerary.segments, i)}: {st.message}
                 </p>
               ) : null,
             )}
-          </Card>
+          </Panel>
         )}
 
         {step === 2 && (
-          <div className="grid gap-4">
+          <div className="grid gap-8">
             {itinerary.segments.map((leg, i) => {
               const st = searches[i];
               const legOrigin = getAirport(leg.originIata);
               if (!st || st.status !== "done" || !legOrigin) {
                 return (
                   <p key={leg.id} className="text-sm text-ink-mute">
-                    {legLabel(itinerary.segments, i)}: no results —{" "}
+                    {legLabel(itinerary.segments, i)}: no results.{" "}
                     {st?.status === "error"
                       ? "search failed, enter this leg by hand on the next step."
                       : "not searched."}
@@ -423,7 +447,7 @@ export default function Page() {
         )}
 
         {step === 3 && (
-          <div className="grid gap-4">
+          <div className="grid gap-8">
             {itinerary.segments.map((leg, i) => (
               <FlightDetails
                 key={leg.id}
@@ -456,28 +480,36 @@ export default function Page() {
         )}
 
         {step === 5 && (
-          <>
-            <div className="mb-3">
-              <FareFields fare={itinerary.fare} onChange={patchFare} />
-            </div>
-            <Card className="bg-elevated">
-              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold text-ink">Live preview</p>
-                  <p className="text-xs text-ink-mute">
-                    What you download is this exact page — there is no second template.
-                  </p>
-                </div>
+          <div className="grid gap-8">
+            <FareFields fare={itinerary.fare} onChange={patchFare} />
+            {/*
+              `headerRight` puts the primary action on the panel's own header row.
+              It was previously a hand-built `flex justify-between` inside the card,
+              which is the pattern Panel exists to own so every step's header has the
+              same geometry.
+            */}
+            <Panel
+              title="Live preview"
+              hint="What you download is this exact page. There is no second template."
+              headerRight={
                 <Button type="button" variant="accent" onClick={() => window.print()}>
                   <DownloadIcon />
                   Save as PDF
                 </Button>
-              </div>
-              <div className="overflow-hidden rounded-lg shadow-[var(--shadow-paper)]">
+              }
+            >
+              {/*
+                No radius on the document wrapper. This is an A4 page: paper does not
+                have rounded corners, and `rounded-lg` here was clipping the real
+                document's own square edge. The paper shadow stays, since that is the
+                one place in the app where elevation carries real meaning — it lifts
+                the deliverable off the work surface.
+              */}
+              <div className="shadow-[var(--shadow-paper)]">
                 <ItineraryDocument itinerary={itinerary} />
               </div>
-            </Card>
-          </>
+            </Panel>
+          </div>
         )}
       </div>
 
@@ -486,7 +518,7 @@ export default function Page() {
         control still occupies attention and invites a click that does nothing.
         The empty span keeps Continue right-aligned without it.
       */}
-      <div className="mt-6 flex items-center justify-between">
+      <div className="mt-8 flex items-center justify-between border-t border-line pt-6">
         {step > 1 ? (
           <Button
             type="button"
@@ -513,15 +545,21 @@ export default function Page() {
       {warnings.length > 0 && (
         <section
           aria-label="Warnings"
-          className="mt-6 rounded-xl border border-amber-500/40 bg-amber-50 p-4"
+          /* Square, like every other panel in the wizard. Stage 1 recoloured this box
+             through the token system but left its `rounded-xl`, so once the rest of
+             the wizard went square it became the only 12px corner on the work
+             surface. Left rule in the notice ink for the same margin-marking language
+             the stepper, the chosen result row and the search error all use. */
+          className="mt-8 border-l-2 border-l-notice-line bg-notice-surface p-4"
         >
-          {/* Amber-900 on amber-50, NOT the dark zone's amber-300 on amber-400/10:
-              that pairing is a light cream on a pale wash, which measured under
-              2:1 once this panel moved onto a white surface. */}
-          <h2 className="text-xs font-bold uppercase tracking-wider text-amber-900">
-            Worth checking — none of these block your document
+          {/* Tokens, not raw `amber-*` utilities. Raw Tailwind palette classes are
+              invisible to @theme, so the monochrome repaint swept the whole app and
+              left this panel painting the previous warm-paper build. --color-notice-*
+              resolves per zone and measures 8.36:1 here. */}
+          <h2 className="text-xs font-bold uppercase tracking-wider text-notice-ink">
+            Worth checking. None of these block your document
           </h2>
-          <ul className="mt-2 space-y-1 text-sm text-amber-900">
+          <ul className="mt-2 space-y-1 text-sm text-notice-ink">
             {warnings.map((w, i) => (
               <li key={`${w.segmentId}-${i}`}>{w.text}</li>
             ))}
@@ -550,46 +588,130 @@ export default function Page() {
         <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-ink">
           How it works
         </h2>
-        <ol className="mt-5 grid gap-4 sm:grid-cols-3">
+        {/*
+          BENTO, not three equal cards.
+          ────────────────────────────────────────────────────────────────────────
+          This was `sm:grid-cols-3` with three visually identical cards, which is a
+          banned shape: the generic three-across feature row. It is now 3 items in 3
+          cells (the cell count must equal the content count, no blank tiles), laid
+          out as one tall lead cell beside two stacked ones: 7 + 5 columns, the lead
+          spanning both rows.
+
+          The asymmetry carries meaning rather than just breaking symmetry. Step one
+          is where every visitor actually starts, and it is the only step reachable
+          without data, so it gets the large cell and the bigger glyph. Steps two and
+          three are consequences of it.
+
+          FILL DIVERSITY. The lead cell is filled and carries the grid texture; the
+          two stacked cells sit on the bare canvas. A multi-cell grid where every
+          cell is the same flat text box is the thing the bento is supposed to
+          replace, so the variation is the point, and it is a pattern plus a tint
+          rather than a photograph. This app ships no raster imagery by an earlier
+          deliberate decision.
+
+          SQUARE, no shadow. Same shape rule as the wizard (containers square,
+          controls 4px), which the previous `rounded-xl` cards broke across the zone
+          boundary. Elevation here comes from the hairline and the fill, so the card
+          shadow is gone: on a #0b0b0d canvas it was doing nothing visible anyway.
+        */}
+        <ol className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-12 sm:grid-rows-2">
           {[
             {
               t: "Enter your route",
               d: "Pick airports from 4,565 with IATA codes. Add a return date for a round trip, or leave it blank for one-way.",
-              icon: <RouteMark />,
+              Icon: Path,
             },
             {
               t: "Choose your flights",
               d: "Search returns carriers and times. Arrival is computed in the destination's timezone, so the document never prints a time that airport would not show.",
-              icon: <ListMark />,
+              Icon: ListChecks,
             },
             {
               t: "Save the PDF",
-              d: "Add passengers and any terminal, cabin or baggage detail, then print. The preview is the PDF — there is no second template to drift.",
-              icon: <PageMark />,
+              d: "Add passengers and any terminal, cabin or baggage detail, then print. The preview is the PDF, so there is no second template to drift.",
+              Icon: FileText,
             },
-          ].map((s2) => (
-            <li
-              key={s2.t}
-              className="rounded-xl border border-line bg-surface p-5 shadow-[var(--shadow-card)] transition-transform duration-200 hover:-translate-y-0.5"
-            >
-              {/*
-                A mark, not the index. The <ol> already conveys order structurally, so
-                the digit was carrying no information a screen reader did not already
-                have — while a glyph of the actual action gives a sighted user something
-                to scan by. Vector, currentColor, no emoji: emoji resolve to whichever
-                colour-emoji font the machine has, so the same page prints differently
-                on a different computer.
-              */}
-              <span
-                aria-hidden
-                className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-secondary"
+          ].map((s2, i2) => {
+            const lead = i2 === 0;
+            return (
+              /*
+                Staggered per cell at the Standard tier's 0.08s, so with three cells
+                the last one starts 160ms after the first. That still reads as one
+                gesture rather than three events, which is what the stagger is for.
+                (It was 0.04s at the Subtle tier, an 80ms spread.)
+
+                HOVER LIFT, with the dataset's shadow deliberately dropped.
+
+                The Standard Hover Micro-interaction row is `y: -4, scale: 1.02,
+                boxShadow: 0 12px 24px rgba(0,0,0,0.12), 250ms, power2.out`. The
+                translate and the duration are taken as specified. The shadow is not,
+                because it was measured against this canvas: 12% black composited
+                over #0b0b0d resolves to #0a0a0b, which is 1.006:1 against the
+                canvas. A one-per-channel delta is not a shadow, it is nothing. That
+                spec assumes a light ground.
+
+                Brightening the border carries the affordance instead, and it is the
+                app's own material: --color-line is 1.40:1 against the canvas and
+                --color-ink-mute is 4.76:1, a 3.4x jump, which is unmissable.
+
+                `scale: 1.02` is also dropped. These cells have a 1px border, and
+                scaling the box renders that border at 1.02px through the whole
+                tween, which reads as a soft edge rather than a lift.
+
+                The translate goes through `hoverLift`, not a Tailwind class, because
+                Motion's inline `transform` and Tailwind v4's `translate` are separate
+                CSS properties that COMPOSE rather than override. A hover class here
+                would stack on top of whatever Motion holds mid-reveal. The prop's own
+                note in Reveal.tsx has the measurement.
+              */
+              <Reveal
+                as="li"
+                key={s2.t}
+                index={i2}
+                hoverLift
+                className={`flex flex-col border border-line transition-colors
+                            duration-200 ease-out hover:border-ink-mute ${
+                  lead
+                    ? "grid-texture justify-end bg-surface p-8 sm:col-span-7 sm:row-span-2"
+                    : "justify-between p-6 sm:col-span-5"
+                }`}
               >
-                {s2.icon}
-              </span>
-              <h3 className="mt-3 text-sm font-semibold text-ink">{s2.t}</h3>
-              <p className="mt-1.5 text-sm leading-relaxed text-ink-soft">{s2.d}</p>
-            </li>
-          ))}
+                {/*
+                  A mark, not the index. The <ol> already conveys order structurally,
+                  so the digit carried no information a screen reader did not already
+                  have, while a glyph of the actual action gives a sighted user
+                  something to scan by.
+
+                  NO TILE. The glyph used to sit in a `bg-primary/15 rounded-lg`
+                  square tinted `text-secondary`. Three problems in one container: a
+                  15%-alpha fill of a near-neutral is invisible on this canvas, the
+                  link blue is not an icon colour, and `rounded-lg` was a third
+                  radius in a two-radius system. Deleting the container fixed all
+                  three, and the glyph reads better without a box around it.
+                */}
+                <s2.Icon
+                  aria-hidden
+                  size={lead ? 28 : 20}
+                  weight={ICON_WEIGHT}
+                  className="text-ink-soft"
+                />
+                <h3
+                  className={`mt-4 font-semibold text-ink ${
+                    lead ? "font-[family-name:var(--font-display)] text-xl" : "text-sm"
+                  }`}
+                >
+                  {s2.t}
+                </h3>
+                <p
+                  className={`mt-2 max-w-[65ch] leading-relaxed text-ink-soft ${
+                    lead ? "text-base" : "text-sm"
+                  }`}
+                >
+                  {s2.d}
+                </p>
+              </Reveal>
+            );
+          })}
         </ol>
       </section>
 
@@ -613,24 +735,64 @@ export default function Page() {
             }),
           }}
         />
-        <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-ink">
-          FAQ
-        </h2>
-        <div className="mt-5 divide-y divide-line overflow-hidden rounded-xl border border-line bg-surface shadow-[var(--shadow-card)]">
-          {FAQ_ITEMS.map((f) => (
-            <details key={f.q} className="group">
-              <summary className="flex cursor-pointer items-center justify-between gap-4 px-5 py-4 text-sm font-medium text-ink transition-colors duration-200 hover:bg-muted">
-                {f.q}
-                <span
-                  aria-hidden
-                  className="text-ink-mute transition-transform duration-200 group-open:rotate-180"
+        {/*
+          A DIFFERENT LAYOUT FAMILY from the section above, deliberately. Two
+          consecutive "headline then one block" sections is the templated rhythm the
+          layout-repetition rule exists to stop, and the bento already used that
+          shape. This is a split instead: heading in a narrow column, content in a
+          wide one.
+
+          This is the permitted case for a split header, not the banned one. The ban
+          is on a big left headline paired with a small explainer paragraph floating
+          on the right; here the wide column carries the interactive accordion, and
+          the narrow column carries the heading and nothing else. No invented
+          marketing sentence was added to fill it, which is what would have turned
+          this back into the banned pattern.
+
+          `sticky` is the functional reason the split earns its keep: the heading
+          stays anchored beside the answers while they are read and opened, instead
+          of scrolling away above them. top-24 clears the 65px sticky header.
+        */}
+        <div className="grid grid-cols-1 gap-8 sm:grid-cols-12">
+          <div className="sm:col-span-4">
+            <h2 className="font-[family-name:var(--font-display)] text-3xl font-semibold text-ink sm:sticky sm:top-24">
+              FAQ
+            </h2>
+          </div>
+
+          {/* One reveal for the whole accordion, not per row: the rows are a single
+              object here, and staggering four <details> made the panel look like it
+              was assembling itself. */}
+          <Reveal className="divide-y divide-line border-y border-line sm:col-span-8">
+            {FAQ_ITEMS.map((f) => (
+              <details key={f.q} className="group">
+                {/*
+                  Hover is a left rule, not a fill. `hover:bg-muted` was the same
+                  invisible state the header nav had: in the dark shell --color-muted
+                  is #1e1e23 against a #0b0b0d canvas, roughly 1.07:1, so the hover
+                  was very nearly nothing. The rule also matches how every other
+                  row-like thing in the app now marks itself, from the stepper to the
+                  chosen flight to the warnings panel.
+                */}
+                <summary
+                  className="flex cursor-pointer items-center justify-between gap-4 border-l-2
+                             border-l-transparent py-4 pl-4 pr-4 text-sm font-medium text-ink
+                             transition-colors duration-200 hover:border-l-ink"
                 >
-                  <ChevronIcon />
-                </span>
-              </summary>
-              <p className="px-5 pb-4 text-sm leading-relaxed text-ink-soft">{f.a}</p>
-            </details>
-          ))}
+                  {f.q}
+                  <span
+                    aria-hidden
+                    className="shrink-0 text-ink-mute transition-transform duration-200 group-open:rotate-180"
+                  >
+                    <ChevronIcon />
+                  </span>
+                </summary>
+                <p className="max-w-[65ch] border-l-2 border-l-transparent pb-4 pl-4 pr-4 text-sm leading-relaxed text-ink-soft">
+                  {f.a}
+                </p>
+              </details>
+            ))}
+          </Reveal>
         </div>
       </section>
       </div>
@@ -652,21 +814,27 @@ export default function Page() {
  */
 function ResultSkeleton({ legs }: { legs: number }) {
   return (
-    <div aria-hidden className="mt-4 grid gap-4">
+    <div aria-hidden className="mt-8 grid gap-8">
       {Array.from({ length: legs }).map((_, legIndex) => (
-        <div
-          key={legIndex}
-          className="rounded-xl border border-line bg-surface p-5 shadow-[var(--shadow-card)]"
-        >
-          {legs > 1 && <div className="skeleton mb-3 h-3 w-40 rounded bg-muted" />}
-          <div className="divide-y divide-line">
+        <div key={legIndex} className="border-t border-line pt-4">
+          {legs > 1 && <div className="skeleton mb-4 h-3 w-40 bg-muted" />}
+          {/*
+            Every width below tracks a real cell in FlightResults: w-16 code,
+            w-36 airline, w-12 time, w-16 offset, w-16 duration, w-16 transfers,
+            then the price and the 86px chip. The gap, padding and hairlines match
+            too. If a column changes there, it has to change here, which is the
+            price of a skeleton that genuinely holds the layout.
+          */}
+          <div className="divide-y divide-line border-y border-line">
             {[0, 1, 2].map((row) => (
-              <div key={row} className="flex items-center gap-3 px-3 py-3">
-                <div className="skeleton h-3 w-16 rounded bg-muted" />
-                <div className="skeleton h-3 w-36 rounded bg-muted" />
-                <div className="skeleton h-3 w-12 rounded bg-muted" />
-                <div className="skeleton h-3 w-14 rounded bg-muted" />
-                <div className="skeleton ml-auto h-3 w-10 rounded bg-muted" />
+              <div key={row} className="flex items-center gap-4 border-l-2 border-l-transparent py-4 pl-4 pr-4">
+                <div className="skeleton h-3 w-16 bg-muted" />
+                <div className="skeleton h-3 w-36 bg-muted" />
+                <div className="skeleton h-3 w-12 bg-muted" />
+                <div className="skeleton h-3 w-16 bg-muted" />
+                <div className="skeleton h-3 w-16 bg-muted" />
+                <div className="skeleton h-3 w-16 bg-muted" />
+                <div className="skeleton ml-auto h-3 w-10 bg-muted" />
                 <div className="skeleton h-[26px] w-[86px] shrink-0 rounded-full bg-muted" />
               </div>
             ))}
@@ -685,57 +853,30 @@ function legLabel(segments: Segment[], i: number): string {
   const s = segments[i];
   const route = s?.originIata && s?.destinationIata ? `${s.originIata} to ${s.destinationIata}` : "route not set";
   if (segments.length < 2) return route;
-  return `${i === 0 ? "Outbound" : "Return"} — ${route}`;
-}
-
-function DownloadIcon() {
-  return (
-    <svg aria-hidden width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3v12m0 0 4-4m-4 4-4-4" />
-      <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" />
-    </svg>
-  );
+  return `${i === 0 ? "Outbound" : "Return"}: ${route}`;
 }
 
 /*
- * Marks for the "How it works" band. 18px, `currentColor`, stroke-only so they inherit
- * the tile's text colour and stay legible in either theme zone without a second copy.
+ * Icons come from Phosphor, one family for the whole app, at a single weight.
+ * These were hand-drawn SVG paths, which is the thing an icon library exists to
+ * stop: five sets of stroke widths and cap styles maintained by hand, none of
+ * them checked against each other. `currentColor` is Phosphor's default, so the
+ * marks still inherit the tile's text colour in either theme zone.
  */
-function RouteMark() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="5" cy="18" r="2.2" />
-      <circle cx="19" cy="6" r="2.2" />
-      <path d="M6.8 16.4C9 13 12 9.5 17 6.9" strokeDasharray="2.6 2.4" />
-    </svg>
-  );
+const ICON_WEIGHT = "regular" as const;
+
+function DownloadIcon() {
+  return <DownloadSimple aria-hidden size={15} weight={ICON_WEIGHT} />;
 }
 
-function ListMark() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M4 7h11M4 12h11M4 17h7" />
-      <path d="M17.5 16.2l1.7 1.7 3-3.4" />
-    </svg>
-  );
-}
-
-function PageMark() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-         strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z" />
-      <path d="M14 3v5h5M9 13h6M9 17h4" />
-    </svg>
-  );
-}
+/*
+ * RouteMark / ListMark / PageMark were here: three one-line wrappers that each
+ * returned a single Phosphor glyph at a fixed 18px. They existed only to hold the
+ * size, and the bento needs two sizes (28px for the lead cell, 20px for the other
+ * two), so the size moved to the call site and the indirection went away. The
+ * components are referenced directly from the step data now.
+ */
 
 function ChevronIcon() {
-  return (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="m6 9 6 6 6-6" />
-    </svg>
-  );
+  return <CaretDown size={16} weight={ICON_WEIGHT} />;
 }

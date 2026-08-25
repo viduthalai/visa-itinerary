@@ -5,9 +5,9 @@ import { progressPct } from "@/lib/progress";
 export type StepDef = { n: number; title: string };
 
 /**
- * Wizard progress bar.
+ * Wizard stepper.
  *
- * Two decisions worth knowing:
+ * Two decisions carried over from the previous version, both still right:
  *
  * 1. A completed step is a BUTTON, a future step is not. Rendering an unreachable
  *    step as a disabled button would announce it to a screen reader as an action
@@ -16,6 +16,32 @@ export type StepDef = { n: number; title: string };
  *
  * 2. The fill is a separate absolutely-positioned bar rather than per-segment
  *    borders, so the progress reads as one continuous line at any step count.
+ *
+ * ────────────────────────────────────────────────────────────────────────────────
+ * WHAT CHANGED, and why
+ * ────────────────────────────────────────────────────────────────────────────────
+ *
+ * THREE MECHANISMS SAYING ONE THING. This component previously stated the same
+ * fact three separate ways: numbered circular dots, a filled progress track, and a
+ * "Step 3 of 5" caption underneath. Swiss Modernism carries hierarchy with weight
+ * and position, not with redundant ornament, so the count is now stated once
+ * visually (the numerals, with the active one at full ink and full weight) plus
+ * once for assistive tech (the bar's `aria-label`). The caption is gone; the
+ * numerals answer "where am I" and the columns answer "how many".
+ *
+ * NO DOTS. The 24px filled circles were the decorative-status-dot pattern: a
+ * coloured disc whose only job was to hold a numeral that could simply be set in
+ * type. Removing them also removes the `✓` glyph, which was a bare text character
+ * standing in for an icon in an app that otherwise uses one icon family.
+ *
+ * SQUARE RULE, NOT A PILL. The track was `h-1.5 rounded-full` with a pill fill,
+ * which is dashboard ornament. It is now a 2px square rule: same continuous line,
+ * same `progressPct` (which has its own test pinning the "progress must show on
+ * step 1" fix, so it stays the source of the width), no rounded ends.
+ *
+ * `progressPct` is deliberately still the input rather than a per-step boolean.
+ * Driving the rule from a percentage keeps one number describing progress, and
+ * keeps lib/progress.test.ts pinning something the app actually renders.
  */
 export function StepProgress({
   steps,
@@ -33,80 +59,15 @@ export function StepProgress({
 
   return (
     <nav aria-label="Progress" className="select-none">
-      <ol className="flex items-start justify-between gap-1">
-        {steps.map((s) => {
-          const done = s.n < current;
-          const active = s.n === current;
-          const canGo = s.n <= reachable && !active;
-
-          const dot = (
-            <span
-              aria-hidden
-              className={[
-                "flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium",
-                "transition-all duration-200",
-                active
-                  ? "bg-primary text-on-primary ring-4 ring-primary/15"
-                  : done
-                    ? "bg-primary text-on-primary"
-                    : s.n <= reachable
-                      ? "border border-ink-mute bg-surface text-ink-soft"
-                      : "border border-line bg-surface text-ink-mute",
-              ].join(" ")}
-            >
-              {done ? "✓" : s.n}
-            </span>
-          );
-
-          const label = (
-            <span
-              className={[
-                "mt-1.5 block text-center text-xs leading-tight",
-                // A future step is quieter than a reachable one, but it is still
-                // INFORMATION — a stepper exists to say what is coming. Opacity was
-                // the wrong tool for that: `ink-mute/50` measured 1.11:1, which is
-                // not "de-emphasised", it is gone. Full-strength ink-mute is 4.71:1
-                // on the surface and still visibly the quietest of the three tiers.
-                active
-                  ? "font-semibold text-ink"
-                  : s.n <= reachable
-                    ? "text-ink-soft"
-                    : "text-ink-mute",
-              ].join(" ")}
-            >
-              {s.title}
-            </span>
-          );
-
-          return (
-            <li key={s.n} className="flex-1">
-              {canGo ? (
-                <button
-                  type="button"
-                  onClick={() => onJump(s.n)}
-                  className="flex w-full cursor-pointer flex-col items-center rounded-lg py-1
-                             transition-colors duration-200 hover:bg-muted"
-                >
-                  {dot}
-                  {label}
-                </button>
-              ) : (
-                <div
-                  className="flex w-full flex-col items-center"
-                  aria-current={active ? "step" : undefined}
-                >
-                  {dot}
-                  {label}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ol>
-
-      <div className="relative mt-3 h-1.5 rounded-full bg-line">
+      {/*
+        The rule sits ABOVE the labels now. It reads as the spine the steps hang
+        from, which is the Swiss convention, and it means the active numeral is
+        adjacent to its own filled segment instead of separated from it by a row
+        of titles.
+      */}
+      <div className="relative h-0.5 bg-line">
         <div
-          className="absolute inset-y-0 left-0 rounded-full bg-primary transition-all duration-300"
+          className="absolute inset-y-0 left-0 bg-ink transition-all duration-300"
           style={{ width: `${pct}%` }}
           role="progressbar"
           aria-valuenow={current}
@@ -115,9 +76,55 @@ export function StepProgress({
           aria-label={`Step ${current} of ${steps.length}`}
         />
       </div>
-      <p className="mt-2 text-xs font-medium text-ink-mute">
-        Step {current} of {steps.length}
-      </p>
+
+      <ol className="mt-2 flex items-start">
+        {steps.map((s) => {
+          const active = s.n === current;
+          const done = s.n < current;
+          const canGo = s.n <= reachable && !active;
+
+          /*
+           * Three tiers, carried entirely by weight and ink:
+           *   active   full ink, semibold
+           *   done or reachable   ink-soft
+           *   future   ink-mute
+           * A future step stays full-strength ink-mute rather than a faded
+           * variant. It is still INFORMATION, and the previous build's
+           * `ink-mute/50` measured 1.11:1, which is not de-emphasis, it is gone.
+           */
+          const tone = active
+            ? "text-ink font-semibold"
+            : done || s.n <= reachable
+              ? "text-ink-soft"
+              : "text-ink-mute";
+
+          const content = (
+            <>
+              <span className="font-mono text-xs tabular-nums">{s.n}</span>
+              <span className="mt-1 block text-xs leading-tight">{s.title}</span>
+            </>
+          );
+
+          return (
+            <li key={s.n} className="min-w-0 flex-1 pr-4">
+              {canGo ? (
+                <button
+                  type="button"
+                  onClick={() => onJump(s.n)}
+                  className={`w-full cursor-pointer text-left transition-colors duration-200
+                              hover:text-ink ${tone}`}
+                >
+                  {content}
+                </button>
+              ) : (
+                <div className={tone} aria-current={active ? "step" : undefined}>
+                  {content}
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ol>
     </nav>
   );
 }

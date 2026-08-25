@@ -1,3 +1,4 @@
+import { ArrowRight } from "@phosphor-icons/react/dist/ssr";
 import {
   AIRCRAFT_GLYPH_D,
   noseUpRotationDeg,
@@ -78,7 +79,7 @@ export function HeroBand({ reference }: { reference: string }) {
           </h1>
 
           <p className="mt-4 max-w-lg text-base leading-relaxed text-ink-soft">
-            Search a route, choose your flights, add passengers — then save a clean PDF.
+            Search a route, choose your flights, add passengers, then save a clean PDF.
             Every arrival is calculated in the destination airport&apos;s own timezone, so the
             document never prints a time that airport would not show.
           </p>
@@ -117,30 +118,54 @@ export function HeroBand({ reference }: { reference: string }) {
             It is an anchor rather than a button so it still works with JS disabled and
             can be opened in a new tab.
           */}
+          {/*
+            TACTILE FEEDBACK, matching the Button primitive in ui.tsx. This CTA is an
+            anchor, so it does not inherit anything from that component and had to be
+            given the same treatment by hand: a 1px hover lift and a press that
+            cancels the lift and scales down.
+
+            `enabled:` is not used here, unlike Button. An anchor has no disabled
+            state for the variant to guard against.
+
+            `transition-colors` widened to `transition-[colors,transform]` because the
+            element now animates a transform as well, and the narrow property list was
+            silently excluding it.
+          */}
           <a
             href="#main"
             className="mt-7 inline-flex min-h-11 cursor-pointer items-center justify-center gap-2
                        rounded-lg bg-accent-on-dark px-5 py-2.5 text-sm font-semibold text-white
-                       transition-colors duration-200 hover:bg-accent-on-dark-hover
+                       transition-[color,background-color,transform] duration-200
+                       hover:bg-accent-on-dark-hover hover:-translate-y-px
+                       active:translate-y-0 active:scale-[0.98]
                        focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2
                        focus-visible:outline-accent-on-dark"
           >
             Get my itinerary
-            <svg width="14" height="14" viewBox="0 0 14 14" aria-hidden="true" fill="none">
-              <path
-                d="M2 7h9M7.5 3.5 11 7l-3.5 3.5"
-                stroke="currentColor"
-                strokeWidth="1.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            {/*
+              Phosphor, not a hand-drawn path. This was the last icon-shaped inline
+              SVG left in the app: five hand-rolled sets moved to the library
+              earlier, and this one and the header's plane were missed because
+              neither sits in a section.
+
+              The two illustrations further down this file (DocumentSilhouette,
+              FlightArc) stay hand-authored and that is correct. They are artwork,
+              not icons, and the arc's geometry is unit-tested in lib/arc.test.ts.
+              The icon rule is about glyphs a library already draws better.
+
+              `/dist/ssr` because this file carries no "use client" of its own. It is
+              in the client graph today only because page.tsx is a client component,
+              and the root entry's icons need a client boundary for IconContext. The
+              ssr entry works in both places, and every call site here passes size
+              and weight explicitly, so the context defaults are not missed.
+            */}
+            <ArrowRight aria-hidden size={14} weight="regular" />
           </a>
 
           <dl className="mt-7 flex flex-wrap gap-x-8 gap-y-3">
             <Stat value="4,565" label="airports" />
             <Stat value="992" label="carriers" />
-            <Stat value={reference || "—"} label="your reference" mono />
+            <Stat value={reference || "-"} label="your reference" mono />
           </dl>
         </div>
 
@@ -169,6 +194,31 @@ export function HeroBand({ reference }: { reference: string }) {
 function HeroArtwork() {
   return (
     <div aria-hidden className="relative hidden lg:block">
+      {/*
+        NO hero photograph here, and that is a measured decision rather than an
+        omission.
+
+        One was added and then removed: FlightArc paints an opaque panel
+        (rgb(14,23,41)) at exactly this column's rect, so a photo behind it was
+        measured at 100% occluded. It cost a server-side fetch and rendered zero
+        visible pixels. Making it visible would mean turning the arc panel
+        translucent, which puts photographic noise under the dotted route line and
+        its BLR / DXB / elapsed-time labels: that arc is the one piece of genuinely
+        custom, unit-tested geometry in the app (lib/arc.ts, arc.test.ts) and its
+        legibility is worth more than a stock frame behind it.
+
+        The hero is not the "text plus gradient blob" case the taste rules are
+        aimed at either: it already carries two real visual objects, the arc and
+        the document silhouette.
+
+        The app currently ships NO raster photography anywhere. A picsum pass was
+        tried across this hero, "How it works" and the FAQ, then dropped: the
+        images loaded and measured clean (CLS 0, proxied via /_next/image so the
+        browser never contacted the host) but a seed only fixes WHICH random photo
+        you get, not its subject. A mossy log above "How it works" on a flight
+        tool is decoration with bytes and no meaning. Real self-hosted travel
+        photography under /public is the way in, if it ever is.
+      */}
       {/* Behind and tilted — reads as the artefact the tool produces, sitting under it. */}
       <DocumentSilhouette />
       <FlightArc />
@@ -283,7 +333,10 @@ function FlightArc() {
        * unreadable on screen. Geometry checks describe an element; they say nothing
        * about what is painted on top of it. Only the screenshot showed it.
        *
-       * `.glass` is untouched — the header still uses it, correctly, over the page.
+       * `.glass` no longer exists anywhere. This comment used to end by noting that
+       * the header still used it correctly; the header is now a solid bar and the
+       * rule has been deleted from globals.css, so there is no glassmorphism layer
+       * left in the app to be right or wrong about.
        */
       className="relative overflow-hidden rounded-2xl border border-line bg-[#0e1729]
                  p-6 shadow-[var(--shadow-lift)]"

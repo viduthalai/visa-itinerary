@@ -97,11 +97,16 @@ export function AirportPicker({ label, value, onChange, placeholder = "JFK" }: P
       </label>
 
       {open && results.length > 0 && (
+        /* Square, and bordered in ink-mute to match every other control. It was
+           `rounded-md` on a `border-line` edge, which made the popover the only
+           6px-radius surface in the wizard sitting on a 1.31:1 border. The IATA
+           column is `tabular-nums` so the codes form a straight column while
+           scrolling. */
         <ul
           id={listId}
           role="listbox"
-          className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded-md border
-                     border-line bg-elevated py-1 shadow-[var(--shadow-lift)]"
+          className="absolute z-10 mt-1 max-h-64 w-full overflow-auto rounded border
+                     border-ink-mute bg-surface shadow-[var(--shadow-lift)]"
         >
           {results.map((a, i) => (
             <li key={a.iata} role="option" aria-selected={i === active}>
@@ -111,11 +116,13 @@ export function AirportPicker({ label, value, onChange, placeholder = "JFK" }: P
                 onPointerDown={(e) => e.preventDefault()}
                 onClick={() => commit(a)}
                 onMouseEnter={() => setActive(i)}
-                className={`flex w-full items-baseline gap-2 px-2.5 py-1.5 text-left text-sm ${
+                className={`flex w-full items-baseline gap-4 px-4 py-2 text-left text-sm ${
                   i === active ? "bg-muted" : ""
                 }`}
               >
-                <span className="w-9 font-mono text-xs font-semibold">{a.iata}</span>
+                <span className="w-8 shrink-0 font-mono text-xs font-semibold tabular-nums">
+                  {a.iata}
+                </span>
                 <span className="truncate">{a.name}</span>
                 <span className="ml-auto shrink-0 text-xs text-ink-mute">
                   {a.city ?? a.country}
@@ -127,8 +134,8 @@ export function AirportPicker({ label, value, onChange, placeholder = "JFK" }: P
       )}
 
       {open && query.trim().length >= 2 && results.length === 0 && (
-        <div className="absolute z-20 mt-1 w-full rounded-lg border border-line bg-elevated
-                        px-2.5 py-2 text-sm text-ink-mute shadow-[var(--shadow-lift)]">
+        <div className="absolute z-20 mt-1 w-full rounded border border-ink-mute bg-surface
+                        px-4 py-2 text-sm text-ink-mute shadow-[var(--shadow-lift)]">
           No airport matches “{query}”
         </div>
       )}

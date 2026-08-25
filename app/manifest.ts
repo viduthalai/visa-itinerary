@@ -14,13 +14,16 @@ import { SITE_DESCRIPTION, SITE_NAME, SITE_TAGLINE } from "@/lib/seo";
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: `${SITE_NAME} — ${SITE_TAGLINE}`,
+    name: `${SITE_NAME}: ${SITE_TAGLINE}`,
     short_name: SITE_NAME,
     description: SITE_DESCRIPTION,
     start_url: "/",
     display: "standalone",
-    background_color: "#171310",
-    theme_color: "#171310",
+    /* Must track --color-canvas in globals.css. These paint the PWA splash and the
+       Android address bar, so a stale value here flashes the previous theme's
+       colour before the app renders. Was #171310 (the warm-paper build). */
+    background_color: "#0b0b0d",
+    theme_color: "#0b0b0d",
     icons: [
       { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
       { src: "/icon.svg", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
