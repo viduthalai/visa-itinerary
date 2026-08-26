@@ -46,8 +46,9 @@ export function SiteFooter() {
             </h2>
             <p className="mt-2 max-w-[65ch] text-sm leading-relaxed text-ink-soft">
               Build a clean, timezone-correct travel itinerary document and save it as a PDF.
-              Runs in your browser. Nothing you type is sent to a server, and there is no
-              account and no payment.
+              No account and no payment — your passenger details and the finished document
+              never leave your browser. Flight search sends only the route and date to look
+              up schedules.
             </p>
           </div>
 

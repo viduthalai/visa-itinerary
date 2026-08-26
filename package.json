@@ -2,7 +2,7 @@
   "name": "visa-itinerary",
   "version": "0.1.0",
   "private": true,
-  "description": "Build a clean, timezone-correct travel itinerary document and save it as a PDF — in your browser, no account.",
+  "description": "Build a clean, timezone-correct travel itinerary document and save it as a PDF. No account, nothing stored.",
   "license": "MIT",
   "author": "Viduthalai Mani (https://github.com/viduthalai)",
   "homepage": "https://github.com/viduthalai/visa-itinerary#readme",

@@ -270,7 +270,7 @@ function searchMock(q: SearchQuery): SearchResponse {
       departureAt: `${q.date}T${time}:00`,
     })),
     source: "mock",
-    note: "Sample data. No flight-provider key is configured, so this is not a live lookup.",
+    note: "No flight-provider key is configured, so this is not a live lookup.",
   };
 }
 

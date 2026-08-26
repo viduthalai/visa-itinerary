@@ -55,7 +55,7 @@ export function HeroBand({ reference }: { reference: string }) {
         <div>
           <span className="inline-flex items-center gap-2 rounded-full border border-line bg-surface/60 px-3 py-1 text-xs font-medium text-ink-soft">
             <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-accent" />
-            Runs in your browser · no account
+            No account · nothing stored
           </span>
 
           <h1 className="mt-5 font-[family-name:var(--font-display)] text-3xl font-semibold leading-[1.08] text-ink sm:text-5xl">

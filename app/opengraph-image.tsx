@@ -67,7 +67,7 @@ export default function OpengraphImage() {
 
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end" }}>
           <div style={{ fontSize: 30, color: "#4a443d", maxWidth: 760 }}>
-            Timezone-correct itinerary PDFs, in your browser, no account.
+            Timezone-correct itinerary PDFs. No account, nothing stored.
           </div>
           <div style={{ fontSize: 26, color: "#6b6459" }}>{host}</div>
         </div>

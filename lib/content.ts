@@ -19,11 +19,11 @@ export const FAQ_ITEMS: FaqItem[] = [
   },
   {
     q: "Where does my data go?",
-    a: "Nowhere. Everything stays in your browser: there is no account and no database. Closing the tab discards it.",
+    a: "Your itinerary stays in your browser — no account, no database, and closing the tab discards it. Passenger details and the finished document are never sent anywhere. The one exception is flight search: the route and date you enter go to a flight-data provider to look up schedules.",
   },
   {
     q: "Are the flight times real?",
-    a: "Times come from the flight search where a provider is configured, and are recalculated in each airport's own timezone. Without a provider token the search returns clearly-labelled sample data.",
+    a: "Times come from the flight-data provider's published schedule and are recalculated in each airport's own timezone. With no provider key configured, the search returns clearly-labelled sample data.",
   },
   {
     q: "Why is the reference number 6 characters?",
