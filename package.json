@@ -30,7 +30,8 @@
     "test": "vitest run",
     "data:airports": "node scripts/build-airports.mjs",
     "test:watch": "vitest",
-    "data:airlines": "node scripts/build-airlines.mjs"
+    "data:airlines": "node scripts/build-airlines.mjs",
+    "data:visa": "node scripts/build-visa.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

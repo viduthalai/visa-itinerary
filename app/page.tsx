@@ -16,6 +16,7 @@ import { PassengerFields } from "@/components/PassengerFields";
 import { StepProgress, type StepDef } from "@/components/StepProgress";
 import { HeroBand } from "@/components/HeroBand";
 import { Reveal } from "@/components/Reveal";
+import { VisaCheck } from "@/components/VisaCheck";
 import { Button, Panel } from "@/components/ui";
 import { FAQ_ITEMS } from "@/lib/content";
 import { getAirport } from "@/lib/airports";
@@ -566,6 +567,16 @@ export default function Page() {
           </ul>
         </section>
       )}
+
+      {/*
+        Visa pre-check. A helper beside the wizard, not a step inside it and not a
+        field on the document — it is advisory guidance from a community dataset, so
+        it lives here rather than on the deliverable. Seeded with the trip's
+        outbound destination country when one is set (segment 0's destination).
+      */}
+      <div className="mt-8">
+        <VisaCheck destinationIso2={destination?.country ?? null} />
+      </div>
 
       {/*
         These two sections exist because the header and footer link to them. A nav
