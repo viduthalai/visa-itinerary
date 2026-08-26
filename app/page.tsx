@@ -17,6 +17,7 @@ import { StepProgress, type StepDef } from "@/components/StepProgress";
 import { HeroBand } from "@/components/HeroBand";
 import { Reveal } from "@/components/Reveal";
 import { VisaCheck } from "@/components/VisaCheck";
+import { stayLengthDays } from "@/lib/visa";
 import { Button, Panel } from "@/components/ui";
 import { FAQ_ITEMS } from "@/lib/content";
 import { getAirport } from "@/lib/airports";
@@ -575,7 +576,10 @@ export default function Page() {
         outbound destination country when one is set (segment 0's destination).
       */}
       <div className="mt-8">
-        <VisaCheck destinationIso2={destination?.country ?? null} />
+        <VisaCheck
+          destinationIso2={destination?.country ?? null}
+          tripStayDays={stayLengthDays(segment.depart.date, returnDate)}
+        />
       </div>
 
       {/*

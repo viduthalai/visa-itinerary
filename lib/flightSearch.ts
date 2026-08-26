@@ -253,11 +253,29 @@ async function searchTravelpayouts(q: SearchQuery, token: string): Promise<Searc
 }
 
 /**
+ * Why the mock is being served. Drives the note so sample data is never silent
+ * about the reason it is not a live lookup.
+ *   "no-key" — no provider key is configured (the production fallback).
+ *   "dev"    — a local dev run, which never spends real provider quota (see searchFlights).
+ */
+export type MockReason = "no-key" | "dev";
+
+/*
+ * Both notes are printed AFTER the bold "Sample data." that FlightResults renders
+ * for a mock source, so neither repeats that phrase (doing so is what produced the
+ * old "Sample data. Sample data." doubling).
+ */
+const MOCK_NOTE: Record<MockReason, string> = {
+  "no-key": "No flight-provider key is configured, so this is not a live lookup.",
+  dev: "Development mode — the flight provider isn't called locally, to conserve quota.",
+};
+
+/**
  * Fixed sample data, shaped from a real keyflight search (JFK->MUC, 15 Oct 2026).
  * Times are rebased onto the requested date so the UI behaves sensibly, but the
  * carriers and durations are fixed — this is sample data, not a lookup.
  */
-function searchMock(q: SearchQuery): SearchResponse {
+function searchMock(q: SearchQuery, reason: MockReason = "no-key"): SearchResponse {
   const template: Array<Omit<FlightResult, "departureAt"> & { time: string }> = [
     { airlineCode: "LH", flightNumber: "411", time: "17:30", durationMinutes: 470, transfers: 0, price: 670, currency: "USD" },
     { airlineCode: "UA", flightNumber: "8870", time: "17:30", durationMinutes: 470, transfers: 0, price: 674, currency: "USD" },
@@ -270,19 +288,29 @@ function searchMock(q: SearchQuery): SearchResponse {
       departureAt: `${q.date}T${time}:00`,
     })),
     source: "mock",
-    note: "No flight-provider key is configured, so this is not a live lookup.",
+    note: MOCK_NOTE[reason],
   };
 }
 
 /**
  * Server-side only: reads keys from the environment, never the client.
  *
- * Provider order: AeroDataBox (primary — real schedules for any date), then
- * Travelpayouts (cached fares with price), then the labelled mock. A hard failure
- * of a provider falls through to the next rather than dead-ending; a
+ * DEV NEVER SPENDS REAL QUOTA. The free tiers are small (AeroDataBox is 600
+ * units/month) and a dev server re-runs a search on every keystroke-triggered
+ * recompile, so a local run returns labelled sample data instead of calling a
+ * provider. Only a production build (`NODE_ENV === "production"`) hits the real
+ * APIs. Set `FLIGHTS_LIVE=true` to opt a single local run into the real providers
+ * when you specifically need to verify the integration.
+ *
+ * Provider order (live only): AeroDataBox (primary — real schedules for any date),
+ * then Travelpayouts (cached fares with price), then the labelled mock. A hard
+ * failure of a provider falls through to the next rather than dead-ending; a
  * reachable-but-empty result is returned as-is, its note explaining the emptiness.
  */
 export async function searchFlights(q: SearchQuery): Promise<SearchResponse> {
+  const live = process.env.NODE_ENV === "production" || process.env.FLIGHTS_LIVE === "true";
+  if (!live) return searchMock(q, "dev");
+
   const rapidKey = process.env.RAPIDAPI_KEY;
   if (rapidKey) {
     try {

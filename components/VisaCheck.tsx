@@ -1,10 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { CheckCircle, Info, Prohibit, Warning } from "@phosphor-icons/react";
 import { Cell, FormGrid, Panel, fieldClass, labelClass } from "@/components/ui";
 import { countryName } from "@/lib/countries";
 import {
+  assessStay,
   hasCountry,
   loadVisaData,
   lookupVisa,
@@ -58,9 +60,17 @@ function flagEmoji(iso2: string): string {
 type Props = {
   /** The trip's outbound destination country (ISO-2), used to seed the selector. */
   destinationIso2?: string | null;
+  /**
+   * The trip's length in days (return departure − outbound departure), or null for
+   * a one-way trip. Drives the overstay guard, which only fires when the selected
+   * destination is still the trip's own destination — the dates belong to THAT
+   * country, so applying them to a country the user is merely exploring would be
+   * wrong.
+   */
+  tripStayDays?: number | null;
 };
 
-export function VisaCheck({ destinationIso2 }: Props) {
+export function VisaCheck({ destinationIso2, tripStayDays }: Props) {
   const [data, setData] = useState<VisaData | null>(null);
   const [passport, setPassport] = useState("");
   const [dest, setDest] = useState("");
@@ -93,6 +103,16 @@ export function VisaCheck({ destinationIso2 }: Props) {
     () => (data && passport && dest ? lookupVisa(data, passport, dest) : null),
     [data, passport, dest],
   );
+
+  // The trip's dates only describe the trip's own destination. Weigh the stay only
+  // while the selected destination still matches it; if the user switches the
+  // dropdown to explore elsewhere, the guard falls silent rather than applying
+  // this trip's length to a different country.
+  const stay = useMemo(() => {
+    const forThisTrip =
+      dest && destinationIso2 && dest.toUpperCase() === destinationIso2.toUpperCase();
+    return forThisTrip ? assessStay(result, tripStayDays ?? null) : null;
+  }, [result, dest, destinationIso2, tripStayDays]);
 
   const ready = Boolean(data);
 
@@ -145,17 +165,47 @@ export function VisaCheck({ destinationIso2 }: Props) {
           selections resolve, the same pattern the wizard's search status uses. */}
       <div aria-live="polite" className="mt-6">
         {result ? (
-          <div className={`border-l-2 px-4 py-3 ${TONE_CLASS[result.tone]}`}>
-            <div className="flex items-center gap-2">
-              <ResultIcon code={result.code} tone={result.tone} />
-              <span className="text-sm font-semibold">{result.label}</span>
+          <>
+            <div className={`border-l-2 px-4 py-3 ${TONE_CLASS[result.tone]}`}>
+              <div className="flex items-center gap-2">
+                <ResultIcon code={result.code} tone={result.tone} />
+                <span className="text-sm font-semibold">{result.label}</span>
+              </div>
+              <p className="mt-1 text-sm">
+                {flagEmoji(passport)} {countryName(passport)} → {flagEmoji(dest)}{" "}
+                {countryName(dest)}: {result.detail}
+                {result.days !== null && ` Stay of up to ${result.days} days.`}
+              </p>
             </div>
-            <p className="mt-1 text-sm">
-              {flagEmoji(passport)} {countryName(passport)} → {flagEmoji(dest)}{" "}
-              {countryName(dest)}: {result.detail}
-              {result.days !== null && ` Stay of up to ${result.days} days.`}
-            </p>
-          </div>
+
+            {/*
+              Overstay guard. Only rendered when this trip's dates apply to the
+              selected destination (see `stay`), so it can safely speak about "this
+              trip". The exceed case borrows the alert tokens; the within-limit case
+              is a quiet confirmation that the check ran, not a second warning.
+            */}
+            {stay &&
+              (stay.exceeds ? (
+                <div className={`mt-2 border-l-2 px-4 py-3 ${TONE_CLASS.alert}`}>
+                  <div className="flex items-center gap-2">
+                    <Warning aria-hidden size={18} weight={ICON_WEIGHT} />
+                    <span className="text-sm font-semibold">
+                      Trip is longer than the allowed stay
+                    </span>
+                  </div>
+                  <p className="mt-1 text-sm">
+                    This trip spans about {stay.stayDays} days, but entry here permits a stay of up
+                    to {stay.allowedDays}. You&rsquo;ll likely need a visa or long-stay permit for
+                    the extra {stay.overBy} day{stay.overBy === 1 ? "" : "s"} — confirm with the
+                    consulate.
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-2 text-xs text-ink-soft">
+                  Your {stay.stayDays}-day trip is within the {stay.allowedDays}-day limit.
+                </p>
+              ))}
+          </>
         ) : passport && dest ? (
           <p className="border-l-2 border-l-line bg-muted px-4 py-3 text-sm text-ink-mute">
             No visa data for this route in the dataset.
@@ -166,6 +216,19 @@ export function VisaCheck({ destinationIso2 }: Props) {
           </p>
         )}
       </div>
+
+      {/* Cross-link to the full per-passport explorer. Also the internal link that
+          keeps the statically-generated /passport/[code] pages from being orphaned. */}
+      {passport && (
+        <p className="mt-4 text-sm">
+          <Link
+            href={`/passport/${passport.toLowerCase()}`}
+            className="text-secondary underline-offset-4 transition-colors hover:text-ink hover:underline"
+          >
+            See everywhere a {countryName(passport)} passport can go →
+          </Link>
+        </p>
+      )}
 
       {/*
         Honesty footnote — the load-bearing line of this feature. The dataset is a

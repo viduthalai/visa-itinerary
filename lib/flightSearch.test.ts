@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { mapAeroFlight } from "@/lib/flightSearch";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { mapAeroFlight, searchFlights } from "@/lib/flightSearch";
 
 /*
  * Fixture tests for the AeroDataBox mapping. The fixtures mirror a real live
@@ -66,5 +66,55 @@ describe("mapAeroFlight", () => {
     expect(
       mapAeroFlight({ number: "", departure: { scheduledTime: { local: "2026-10-15 04:45+05:30" } } }),
     ).toBeNull(); // no carrier
+  });
+});
+
+/*
+ * The dev quota gate: outside a production build, searchFlights must serve sample
+ * data WITHOUT calling a provider, even when a key is configured. fetch is stubbed
+ * to throw so any real call would fail the test loudly rather than pass silently.
+ */
+describe("searchFlights dev gate", () => {
+  const query = { origin: "BLR", destination: "DXB", date: "2026-10-15" };
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("returns sample data in development even with a provider key set, and never fetches", async () => {
+    const fetchSpy = vi.fn(() => {
+      throw new Error("searchFlights hit the network in development");
+    });
+    vi.stubGlobal("fetch", fetchSpy);
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("FLIGHTS_LIVE", "");
+    vi.stubEnv("RAPIDAPI_KEY", "a-configured-key");
+
+    const res = await searchFlights(query);
+    expect(res.source).toBe("mock");
+    expect(res.note).toMatch(/development mode/i);
+    expect(res.results.length).toBeGreaterThan(0);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
+  it("FLIGHTS_LIVE=true opts a local run back into the real provider path", async () => {
+    // With no key configured, the live path falls through providers to the no-key
+    // mock — a different note than the dev gate, proving the gate was bypassed.
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => {
+        throw new Error("no network in this test");
+      }),
+    );
+    vi.stubEnv("NODE_ENV", "development");
+    vi.stubEnv("FLIGHTS_LIVE", "true");
+    vi.stubEnv("RAPIDAPI_KEY", "");
+    vi.stubEnv("TRAVELPAYOUTS_TOKEN", "");
+
+    const res = await searchFlights(query);
+    expect(res.source).toBe("mock");
+    expect(res.note).not.toMatch(/development mode/i);
+    expect(res.note).toMatch(/no flight-provider key/i);
   });
 });

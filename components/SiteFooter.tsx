@@ -52,9 +52,12 @@ export function SiteFooter() {
             </p>
           </div>
 
-          <FooterColumn title="On this page" className="sm:col-span-3">
-            <FooterLink href="#how-it-works">How it works</FooterLink>
-            <FooterLink href="#faq">FAQ</FooterLink>
+          <FooterColumn title="Explore" className="sm:col-span-3">
+            {/* Absolute /#… so these work from the shared-header /passport pages too,
+                not just the home page where the anchors live. */}
+            <FooterLink href="/#how-it-works">How it works</FooterLink>
+            <FooterLink href="/#faq">FAQ</FooterLink>
+            <FooterLink href="/passport">Visa by passport</FooterLink>
           </FooterColumn>
 
           <FooterColumn title="Data sources" className="sm:col-span-4">

@@ -94,8 +94,11 @@ export function SiteHeader() {
         </Link>
 
         <nav aria-label="Main" className="flex items-center gap-2 text-sm">
-          <HeaderLink href="#how-it-works">How it works</HeaderLink>
-          <HeaderLink href="#faq">FAQ</HeaderLink>
+          <HeaderLink href="/passport">Passports</HeaderLink>
+          {/* Absolute (/#…), not page-relative (#…): the header is shared with the
+              /passport pages, where a bare #how-it-works would resolve to nothing. */}
+          <HeaderLink href="/#how-it-works">How it works</HeaderLink>
+          <HeaderLink href="/#faq">FAQ</HeaderLink>
         </nav>
       </div>
     </header>
